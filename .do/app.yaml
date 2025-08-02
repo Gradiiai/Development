@@ -1,0 +1,47 @@
+name: gradii
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: himanshubohra/Gradii
+    branch: main
+  run_command: npm start
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  routes:
+  - path: /
+  health_check:
+    http_path: /
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: NEXTAUTH_URL
+    value: ${APP_URL}
+  - key: NEXTAUTH_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  - key: NEXT_PUBLIC_DRIZZLE_DB_URL
+    scope: RUN_TIME
+    type: SECRET
+  - key: OPENAI_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: JWT_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_HOST
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PORT
+    value: "587"
+  - key: SMTP_USER
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PASSWORD
+    scope: RUN_TIME
+    type: SECRET
+  - key: NEXT_PUBLIC_APP_URL
+    value: ${APP_URL}
+  - key: NEXT_PUBLIC_APP_NAME
+    value: "Gradii - powered by arham.ai"

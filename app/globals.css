@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import 'react-datepicker/dist/react-datepicker.css';
+
+/* Smooth scrolling and improved transitions */
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  /* Removed global transitions to eliminate fly-in animations */
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14.3% 95.9%;
+  --secondary-foreground: 220.9 39.3% 11%;
+  --muted: 220 14.3% 95.9%;
+  --muted-foreground: 220 8.9% 46.1%;
+  --accent: 220 14.3% 95.9%;
+  --accent-foreground: 220.9 39.3% 11%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 160 84% 39%;
+  --radius: 0.5rem;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
+
+  /* Enhanced color palette for clean dashboard */
+  --primary-light: 160 84% 50%;
+  --primary-dark: 160 84% 30%;
+  --secondary-light: 220 14.3% 98%;
+  --secondary-dark: 220 14.3% 85%;
+  
+  /* Organic animation variables */
+  --animation-duration: 8s;
+  --animation-timing: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 84% 4.9%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Enhanced organic animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-15px) rotate(2deg) scale(1.05);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-1deg) scale(0.98);
+  }
+  75% {
+    transform: translateY(-20px) rotate(3deg) scale(1.02);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.6;
+    filter: blur(0px);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(2px);
+  }
+}
+
+@keyframes organic-wave {
+  0%, 100% {
+    d: path("M0,160 C240,100 480,220 720,160 C960,100 1200,220 1440,160 L1440,320 L0,320 Z");
+  }
+  50% {
+    d: path("M0,180 C240,120 480,200 720,180 C960,120 1200,200 1440,180 L1440,320 L0,320 Z");
+  }
+}
+
+@keyframes blob-morph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  25% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  50% {
+    border-radius: 70% 30% 40% 60% / 30% 50% 60% 40%;
+  }
+  75% {
+    border-radius: 40% 70% 60% 30% / 70% 40% 50% 30%;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Animation classes */
+.animate-float {
+  animation: float var(--animation-duration) ease-in-out infinite;
+}
+
+.animate-float:nth-child(2) {
+  animation-delay: -2s;
+}
+
+.animate-float:nth-child(3) {
+  animation-delay: -4s;
+}
+
+.animate-float:nth-child(4) {
+  animation-delay: -6s;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-blob {
+  animation: blob-morph 10s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* Use default browser scrollbar */
+
+/* Removed focus ring styles to eliminate green borders */
+*:focus {
+  outline: none;
+}
+
+/* Enhanced button hover effects - animations removed */
+.btn-organic {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-organic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+}
+
+.btn-organic:hover::before {
+  left: 100%;
+}
+
+/* Card hover effects - animations removed */
+.card-organic {
+  /* No transitions or transforms */
+}
+
+.card-organic:hover {
+  /* No hover effects */
+}
+
+/* Gradient text effects */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)),
+    hsl(var(--secondary))
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Loading animation */
+@keyframes spin-organic {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.animate-spin-organic {
+  animation: spin-organic 2s linear infinite;
+}
+
+/* Responsive utilities - animations removed */
+@media (max-width: 768px) {
+  .animate-float {
+    animation: none;
+  }
+  
+  .card-organic:hover {
+    /* No hover effects on mobile */
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 20%;
+    --ring: 0 0% 30%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-blob,
+  .animate-gradient,
+  .animate-spin-organic {
+    animation: none;
+  }
+  
+  .card-organic,
+  .btn-organic {
+    transition: none;
+  }
+}
