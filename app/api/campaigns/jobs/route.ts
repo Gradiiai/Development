@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from "@/auth";;
 import { createJobCampaign, getJobCampaigns, deleteJobCampaign, updateJobCampaign } from '@/lib/database/queries/campaigns';
-import { validateAutoScheduleConfig, getDefaultAutoScheduleConfig } from '@/lib/services/interview/scheduling';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       skills,
       companyId,
       currency,
+      campaignType,
       applicationDeadline,
       targetHireDate,
       isRemote,
@@ -53,7 +54,6 @@ export async function POST(request: NextRequest) {
       competencies,
       jobDescriptionTemplateId,
       skillTemplateId,
-      autoScheduleConfig
     } = body;
 
     // Use employmentType if employeeType is not provided (for backward compatibility)
@@ -111,16 +111,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Auto-scheduling configuration validation
-    let finalAutoScheduleConfig = getDefaultAutoScheduleConfig();
-    if (autoScheduleConfig) {
-      const configValidation = validateAutoScheduleConfig(autoScheduleConfig);
-      if (!configValidation.valid) {
-        validationErrors.autoScheduleConfig = configValidation.errors.join(', ');
-      } else {
-        finalAutoScheduleConfig = { ...finalAutoScheduleConfig, ...autoScheduleConfig };
-      }
-    }
+
 
     if (Object.keys(validationErrors).length > 0) {
       console.error('Validation failed:', validationErrors);
@@ -156,13 +147,14 @@ export async function POST(request: NextRequest) {
       competencies: typeof competencies === 'string' ? competencies.trim() : JSON.stringify(competencies || []),
       minExperience: minExperience ? parseInt(minExperience.toString()) : undefined,
       maxExperience: maxExperience ? parseInt(maxExperience.toString()) : undefined,
+      campaignType: campaignType || 'specific',
       applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : undefined,
       targetHireDate: targetHireDate ? new Date(targetHireDate) : undefined,
       isRemote: Boolean(isRemote),
       isHybrid: Boolean(isHybrid),
       jobDescriptionTemplateId: jobDescriptionTemplateId || undefined,
       skillTemplateId: skillTemplateId || undefined,
-      autoScheduleConfig: finalAutoScheduleConfig,
+      
       createdBy: session.user.id,
       companyId
     };

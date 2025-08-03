@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/shared/badge';
 import { Separator } from '@/components/ui/shared/separator';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Clock, Users, Settings, Layers, Code, MessageSquare, Loader2, AlertCircle, Calendar, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Clock, Users, Settings, Layers, Code, MessageSquare, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useJobCampaignStore, InterviewRound } from '@/shared/store/jobCampaignStore';
@@ -57,9 +57,9 @@ export default function InterviewSetupPage() {
   }, [campaignId, fetchInterviewSetup]);
   
   const {
-    questionBanks,
-    loading: questionBanksLoading,
-    error: questionBanksError
+    questionBanks: questionCollections,
+    loading: questionCollectionsLoading,
+    error: questionCollectionsError
   } = useQuestionBanks();
   
   // State for hierarchical question bank selection
@@ -102,17 +102,10 @@ export default function InterviewSetupPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Auto-scheduling configuration state
-  const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(true);
-  const [scoreThreshold, setScoreThreshold] = useState(80);
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('17:00');
-  const [intervalHours, setIntervalHours] = useState(24);
-  const [workingDays, setWorkingDays] = useState(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-  const [timeZone, setTimeZone] = useState('Asia/Kolkata');
+
   
-  const loading = setupLoading || questionBanksLoading || templatesLoading;
-  const hasError = setupError || questionBanksError || templatesError || questionSetsError;
+  const loading = setupLoading || questionCollectionsLoading || templatesLoading;
+  const hasError = setupError || questionCollectionsError || templatesError || questionSetsError;
 
   // Apply template when selected
   const handleTemplateChange = (templateId: string) => {
@@ -188,20 +181,11 @@ export default function InterviewSetupPage() {
           difficulty: round.difficulty,
           chooseRandom: round.chooseRandom,
           instructions: round.instructions,
-          questionBankId: round.bankId, // Use bankId (UUID) instead of questionBank (type)
-          questionType: round.questionBank // questionBank is actually the question type
+          questionCollectionId: round.bankId, // Use bankId (UUID) for question collection
+          questionType: round.questionBank, // questionBank is actually the question type
+          bankId: round.bankId // Also pass bankId for compatibility
         })),
-        autoScheduleConfig: {
-          enabled: autoScheduleEnabled,
-          scoreThreshold: scoreThreshold,
-          scheduleSettings: {
-            timeZone: timeZone,
-            startTime: startTime,
-            endTime: endTime,
-            intervalHours: intervalHours,
-            workingDays: workingDays
-          }
-        }
+
       };
       
       const result = await saveInterviewSetup(interviewData);
@@ -419,7 +403,7 @@ export default function InterviewSetupPage() {
                               <SelectValue placeholder="Choose a question bank" />
                             </SelectTrigger>
                             <SelectContent>
-                              {(questionBanks as any[])
+                              {(questionCollections as any[])
                                 .filter((bank) => bank.isActive)
                                 .map((bank) => (
                                   <SelectItem key={bank.id} value={bank.id}>
@@ -446,8 +430,8 @@ export default function InterviewSetupPage() {
                               <SelectContent>
                                 <SelectItem value="none">None (Custom Questions)</SelectItem>
 
-                                {questionBanks
-                                  .find((bank) => bank.id === round.bankId)
+                                {questionCollections
+                                  .find((bank: any) => bank.id === round.bankId)
                                   ?.questionTypes?.map((qt: { type: string; count: number }) => (
                                     <SelectItem key={qt.type} value={qt.type}>
                                       {qt.type.toUpperCase()} Questions ({qt.count} questions)
@@ -545,145 +529,7 @@ export default function InterviewSetupPage() {
           })}
         </div>
 
-        {/* Auto-Scheduling Configuration */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8"
-        >
-          <Card className="border-2 hover:border-orange-200 transition-colors">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Zap className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Auto-Scheduling Configuration</CardTitle>
-                    <CardDescription>Configure automatic interview scheduling for qualified candidates</CardDescription>
-                  </div>
-                </div>
-                <Switch
-                  checked={autoScheduleEnabled}
-                  onCheckedChange={setAutoScheduleEnabled}
-                />
-              </div>
-            </CardHeader>
-            
-            {autoScheduleEnabled && (
-              <CardContent className="space-y-6">
-                <Alert>
-                  <Settings className="h-4 w-4" />
-                  <AlertDescription>
-                    When enabled, candidates with resume scores above the threshold will automatically have interviews scheduled.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Score Threshold */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Score Threshold (%)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={scoreThreshold || 80}
-                      onChange={(e) => setScoreThreshold(parseInt(e.target.value) || 80)}
-                      placeholder="80"
-                    />
-                    <p className="text-xs text-gray-500">Minimum resume score to trigger auto-scheduling</p>
-                  </div>
 
-                  {/* Time Zone */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Time Zone</Label>
-                    <Select value={timeZone || 'Asia/Kolkata'} onValueChange={setTimeZone}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Asia/Kolkata">Asia/Kolkata (IST)</SelectItem>
-                        <SelectItem value="America/New_York">America/New_York (EST)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">America/Los_Angeles (PST)</SelectItem>
-                        <SelectItem value="Europe/London">Europe/London (GMT)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Asia/Tokyo (JST)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Interval Hours */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Interview Interval (hours)</Label>
-                    <Select value={(intervalHours || 24).toString()} onValueChange={(value) => setIntervalHours(parseInt(value))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select interval" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="24">24 hours (1 day)</SelectItem>
-                        <SelectItem value="48">48 hours (2 days)</SelectItem>
-                        <SelectItem value="72">72 hours (3 days)</SelectItem>
-                        <SelectItem value="168">168 hours (1 week)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500">Time between interview rounds</p>
-                  </div>
-
-                  {/* Start Time */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Start Time</Label>
-                    <Input
-                      type="time"
-                      value={startTime || '09:00'}
-                      onChange={(e) => setStartTime(e.target.value)}
-                    />
-                    <p className="text-xs text-gray-500">Earliest interview time</p>
-                  </div>
-
-                  {/* End Time */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">End Time</Label>
-                    <Input
-                      type="time"
-                      value={endTime || '17:00'}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                    <p className="text-xs text-gray-500">Latest interview time</p>
-                  </div>
-
-                  {/* Working Days */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Working Days</Label>
-                                            <div className="grid grid-cols-2 gap-2">
-                          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
-                            <div key={day} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={day}
-                                checked={(workingDays || []).includes(day)}
-                                onChange={(e) => {
-                                  const currentWorkingDays = workingDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                                  if (e.target.checked) {
-                                    setWorkingDays([...currentWorkingDays, day]);
-                                  } else {
-                                    setWorkingDays(currentWorkingDays.filter(d => d !== day));
-                                  }
-                                }}
-                                className="rounded border-gray-300"
-                              />
-                              <Label htmlFor={day} className="text-sm capitalize">
-                                {day.slice(0, 3)}
-                              </Label>
-                            </div>
-                          ))}
-                    </div>
-                    <p className="text-xs text-gray-500">Days when interviews can be scheduled</p>
-                  </div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </motion.div>
 
         {/* Action Buttons */}
         <motion.div

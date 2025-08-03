@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Extract filter parameters
-    const questionBankId = searchParams.get('questionBankId') || undefined;
+    const collectionId = searchParams.get('collectionId') || undefined;
     const questionType = searchParams.get('questionType') || undefined;
     const category = searchParams.get('category') || undefined;
     const difficultyLevel = searchParams.get('difficultyLevel') || undefined;
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const tags = searchParams.get('tags') || undefined;
 
     const filters = {
-      questionBankId,
+      collectionId,
       questionType,
       category,
       difficultyLevel,
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     const result = await getQuestions({
       companyId,
-      questionBankId,
+      collectionId: collectionId,
       questionType,
       category,
       difficultyLevel,
@@ -78,10 +78,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate required fields including questionBankId
-    if (!body.questionBankId || !body.questionType || !body.category || !body.difficultyLevel || !body.question) {
+    // Validate required fields including collectionId
+    if (!body.collectionId || !body.questionType || !body.category || !body.difficultyLevel || !body.question) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields (questionBankId, questionType, category, difficultyLevel, question)' },
+        { success: false, error: 'Missing required fields (collectionId, questionType, category, difficultyLevel, question)' },
         { status: 400 }
       );
     }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const questionData = {
-      questionBankId: body.questionBankId,
+      collectionId: body.collectionId,
       companyId,
       createdBy: userId,
       questionType: body.questionType,

@@ -25,8 +25,10 @@ export interface JobDetailsForm {
   maxExperience?: number; // Maximum years of experience
   jobDescriptionTemplateId?: string;
   skillTemplateId?: string;
-  applicationDeadline?: string;
-  targetHireDate?: string;
+
+  campaignType: 'permanent' | 'specific';
+  applicationDeadline?: string; // Optional for permanent campaigns
+  targetHireDate?: string; // Optional for permanent campaigns
   isRemote: boolean;
   isHybrid: boolean;
 }
@@ -40,6 +42,7 @@ export interface JobCampaign {
   employmentType: string;
   experienceLevel: string;
   status: 'draft' | 'active' | 'paused' | 'closed';
+  campaignType?: 'permanent' | 'specific';
   createdAt: string;
   candidatesCount?: number;
   interviewsCount?: number;

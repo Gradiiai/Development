@@ -41,6 +41,7 @@ const initialJobDetails: JobDetailsForm = {
   requirements: [],
   benefits: [],
   skills: [],
+  campaignType: 'specific',
   applicationDeadline: '',
   targetHireDate: '',
   isRemote: false,

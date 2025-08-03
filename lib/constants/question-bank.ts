@@ -1,23 +1,23 @@
 // Question Bank Constants and Categories
 
-export const QUESTION_TYPES = {
-  BEHAVIORAL: 'behavioral',
-  CODING: 'coding',
+// Interview Types - HOW questions are delivered
+export const INTERVIEW_TYPES = {
   MCQ: 'mcq',
-  COMBO: 'combo',
-  APTITUDE: 'aptitude',
-  SCREENING: 'screening'
+  CODING: 'coding', 
+  BEHAVIORAL: 'behavioral',
+  COMBO: 'combo'
 } as const;
 
+// Question Categories - WHAT the questions are about
 export const QUESTION_CATEGORIES = {
   TECHNICAL: 'technical',
-  BEHAVIORAL: 'behavioral',
-  APTITUDE: 'aptitude',
+  APTITUDE: 'aptitude', 
+  SKILLS: 'skills',
+  LEADERSHIP: 'leadership',
+  COMMUNICATION: 'communication',
+  PROBLEM_SOLVING: 'problem-solving',
   GENERAL_SCREENING: 'general-screening',
-  SOFT_SKILLS: 'soft-skills',
-  DOMAIN_SPECIFIC: 'domain-specific',
-  COGNITIVE: 'cognitive',
-  PERSONALITY: 'personality'
+  DOMAIN_SPECIFIC: 'domain-specific'
 } as const;
 
 export const APTITUDE_SUBCATEGORIES = {
@@ -44,9 +44,9 @@ export const TECHNICAL_SUBCATEGORIES = {
   ARCHITECTURE: 'architecture'
 } as const;
 
-export const BEHAVIORAL_SUBCATEGORIES = {
+export const SKILLS_SUBCATEGORIES = {
   LEADERSHIP: 'leadership',
-  TEAMWORK: 'teamwork',
+  TEAMWORK: 'teamwork', 
   COMMUNICATION: 'communication',
   PROBLEM_SOLVING: 'problem-solving',
   ADAPTABILITY: 'adaptability',
@@ -68,16 +68,15 @@ export const SCREENING_SUBCATEGORIES = {
   MOTIVATION: 'motivation'
 } as const;
 
-export const SOFT_SKILLS_SUBCATEGORIES = {
-  EMOTIONAL_INTELLIGENCE: 'emotional-intelligence',
-  INTERPERSONAL_SKILLS: 'interpersonal-skills',
+export const COMMUNICATION_SUBCATEGORIES = {
   PRESENTATION_SKILLS: 'presentation-skills',
+  INTERPERSONAL_SKILLS: 'interpersonal-skills',
   NEGOTIATION: 'negotiation',
   CUSTOMER_SERVICE: 'customer-service',
   SALES_SKILLS: 'sales-skills',
+  EMOTIONAL_INTELLIGENCE: 'emotional-intelligence',
   CREATIVITY: 'creativity',
-  INNOVATION: 'innovation',
-  COMMUNICATION: 'communication'
+  INNOVATION: 'innovation'
 } as const;
 
 export const DIFFICULTY_LEVELS = {
@@ -99,7 +98,7 @@ export const PREDEFINED_TEMPLATES = [
     description: 'Comprehensive question bank for full-stack software engineer positions',
     category: QUESTION_CATEGORIES.TECHNICAL,
     subCategory: TECHNICAL_SUBCATEGORIES.WEB_DEVELOPMENT,
-    questionTypes: [QUESTION_TYPES.CODING, QUESTION_TYPES.MCQ, QUESTION_TYPES.BEHAVIORAL],
+    interviewTypes: [INTERVIEW_TYPES.CODING, INTERVIEW_TYPES.MCQ, INTERVIEW_TYPES.BEHAVIORAL],
     targetRoles: ['Software Engineer', 'Full Stack Developer', 'Web Developer'],
     difficultyLevels: [DIFFICULTY_LEVELS.EASY, DIFFICULTY_LEVELS.MEDIUM, DIFFICULTY_LEVELS.HARD],
     estimatedQuestions: 50
@@ -109,7 +108,7 @@ export const PREDEFINED_TEMPLATES = [
     description: 'General aptitude questions for analytical and logical reasoning',
     category: QUESTION_CATEGORIES.APTITUDE,
     subCategory: APTITUDE_SUBCATEGORIES.LOGICAL_REASONING,
-    questionTypes: [QUESTION_TYPES.APTITUDE, QUESTION_TYPES.MCQ],
+    interviewTypes: [INTERVIEW_TYPES.MCQ],
     targetRoles: ['General', 'Entry Level', 'Graduate'],
     difficultyLevels: [DIFFICULTY_LEVELS.EASY, DIFFICULTY_LEVELS.MEDIUM],
     estimatedQuestions: 30
@@ -117,9 +116,9 @@ export const PREDEFINED_TEMPLATES = [
   {
     name: 'Leadership & Management',
     description: 'Behavioral questions focused on leadership and management skills',
-    category: QUESTION_CATEGORIES.BEHAVIORAL,
-    subCategory: BEHAVIORAL_SUBCATEGORIES.LEADERSHIP,
-    questionTypes: [QUESTION_TYPES.BEHAVIORAL],
+    category: QUESTION_CATEGORIES.LEADERSHIP,
+    subCategory: SKILLS_SUBCATEGORIES.LEADERSHIP,
+    interviewTypes: [INTERVIEW_TYPES.BEHAVIORAL],
     targetRoles: ['Manager', 'Team Lead', 'Senior', 'Director'],
     difficultyLevels: [DIFFICULTY_LEVELS.MEDIUM, DIFFICULTY_LEVELS.HARD],
     estimatedQuestions: 25
@@ -129,7 +128,7 @@ export const PREDEFINED_TEMPLATES = [
     description: 'Basic screening questions for initial candidate evaluation',
     category: QUESTION_CATEGORIES.GENERAL_SCREENING,
     subCategory: SCREENING_SUBCATEGORIES.BASIC_QUALIFICATIONS,
-    questionTypes: [QUESTION_TYPES.SCREENING, QUESTION_TYPES.MCQ],
+    interviewTypes: [INTERVIEW_TYPES.MCQ, INTERVIEW_TYPES.BEHAVIORAL],
     targetRoles: ['All Roles'],
     difficultyLevels: [DIFFICULTY_LEVELS.EASY],
     estimatedQuestions: 15
@@ -139,7 +138,7 @@ export const PREDEFINED_TEMPLATES = [
     description: 'Comprehensive coding questions on DSA topics',
     category: QUESTION_CATEGORIES.TECHNICAL,
     subCategory: TECHNICAL_SUBCATEGORIES.ALGORITHMS,
-    questionTypes: [QUESTION_TYPES.CODING, QUESTION_TYPES.MCQ],
+    interviewTypes: [INTERVIEW_TYPES.CODING, INTERVIEW_TYPES.MCQ],
     targetRoles: ['Software Engineer', 'Backend Developer', 'Algorithm Engineer'],
     difficultyLevels: [DIFFICULTY_LEVELS.MEDIUM, DIFFICULTY_LEVELS.HARD],
     estimatedQuestions: 40
@@ -147,9 +146,9 @@ export const PREDEFINED_TEMPLATES = [
   {
     name: 'Soft Skills Assessment',
     description: 'Questions to evaluate communication, teamwork, and interpersonal skills',
-    category: QUESTION_CATEGORIES.SOFT_SKILLS,
-    subCategory: SOFT_SKILLS_SUBCATEGORIES.COMMUNICATION,
-    questionTypes: [QUESTION_TYPES.BEHAVIORAL, QUESTION_TYPES.SCREENING],
+    category: QUESTION_CATEGORIES.COMMUNICATION,
+    subCategory: COMMUNICATION_SUBCATEGORIES.INTERPERSONAL_SKILLS,
+    interviewTypes: [INTERVIEW_TYPES.BEHAVIORAL, INTERVIEW_TYPES.MCQ],
     targetRoles: ['All Roles'],
     difficultyLevels: [DIFFICULTY_LEVELS.EASY, DIFFICULTY_LEVELS.MEDIUM],
     estimatedQuestions: 20
@@ -164,51 +163,51 @@ export const CATEGORY_INFO = {
     icon: 'Code',
     color: 'blue'
   },
-  [QUESTION_CATEGORIES.BEHAVIORAL]: {
-    name: 'Behavioral',
-    description: 'Questions about past experiences, leadership, and soft skills',
-    icon: 'Users',
-    color: 'green'
-  },
   [QUESTION_CATEGORIES.APTITUDE]: {
     name: 'Aptitude',
     description: 'Logical reasoning, quantitative, and analytical thinking questions',
     icon: 'Brain',
     color: 'purple'
   },
+  [QUESTION_CATEGORIES.SKILLS]: {
+    name: 'Skills',
+    description: 'General skills and competency assessment questions',
+    icon: 'Award',
+    color: 'green'
+  },
+  [QUESTION_CATEGORIES.LEADERSHIP]: {
+    name: 'Leadership',
+    description: 'Leadership, management, and decision-making questions',
+    icon: 'Users',
+    color: 'orange'
+  },
+  [QUESTION_CATEGORIES.COMMUNICATION]: {
+    name: 'Communication',
+    description: 'Communication, presentation, and interpersonal skills',
+    icon: 'MessageSquare',
+    color: 'pink'
+  },
+  [QUESTION_CATEGORIES.PROBLEM_SOLVING]: {
+    name: 'Problem Solving',
+    description: 'Analytical thinking and problem-solving approach questions',
+    icon: 'Lightbulb',
+    color: 'yellow'
+  },
   [QUESTION_CATEGORIES.GENERAL_SCREENING]: {
     name: 'General Screening',
     description: 'Basic qualification and fit assessment questions',
     icon: 'Filter',
-    color: 'orange'
-  },
-  [QUESTION_CATEGORIES.SOFT_SKILLS]: {
-    name: 'Soft Skills',
-    description: 'Communication, teamwork, and interpersonal skills assessment',
-    icon: 'Heart',
-    color: 'pink'
+    color: 'gray'
   },
   [QUESTION_CATEGORIES.DOMAIN_SPECIFIC]: {
     name: 'Domain Specific',
     description: 'Industry or role-specific knowledge questions',
     icon: 'Target',
     color: 'indigo'
-  },
-  [QUESTION_CATEGORIES.COGNITIVE]: {
-    name: 'Cognitive',
-    description: 'Memory, attention, and cognitive ability assessment',
-    icon: 'Zap',
-    color: 'yellow'
-  },
-  [QUESTION_CATEGORIES.PERSONALITY]: {
-    name: 'Personality',
-    description: 'Personality traits and cultural fit assessment',
-    icon: 'Smile',
-    color: 'teal'
   }
 };
 
-export type QuestionType = typeof QUESTION_TYPES[keyof typeof QUESTION_TYPES];
+export type InterviewType = typeof INTERVIEW_TYPES[keyof typeof INTERVIEW_TYPES];
 export type QuestionCategory = typeof QUESTION_CATEGORIES[keyof typeof QUESTION_CATEGORIES];
 export type DifficultyLevel = typeof DIFFICULTY_LEVELS[keyof typeof DIFFICULTY_LEVELS];
 export type UsageType = typeof USAGE_TYPES[keyof typeof USAGE_TYPES];

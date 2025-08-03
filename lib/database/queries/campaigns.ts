@@ -10,7 +10,7 @@ import {
   candidateScores, 
   interviewSetups, 
   campaignInterviews,
-  questionBank,
+  questions,
   skillTemplates,
   jobDescriptionTemplates
 } from '../schema';
@@ -38,11 +38,12 @@ export async function createJobCampaign(data: {
   maxExperience?: number;
   jobDescriptionTemplateId?: string;
   skillTemplateId?: string;
+  campaignType?: string;
   applicationDeadline?: Date;
   targetHireDate?: Date;
   isRemote?: boolean;
   isHybrid?: boolean;
-  autoScheduleConfig?: any;
+
   createdBy: string;
   companyId: string;
   status?: string;
@@ -936,7 +937,7 @@ export async function createInterviewSetup(data: {
   roundName: string;
   interviewType: string;
   timeLimit: number;
-  questionBankId?: string;
+  questionCollectionId?: string;
   numberOfQuestions: number;
   randomizeQuestions?: boolean;
   difficultyLevel: string;
@@ -1025,7 +1026,7 @@ export async function updateCampaignInterview(id: string, data: {
 
 // Question Bank Operations
 export async function createQuestion(data: {
-  questionBankId: string;
+  collectionId: string;
   companyId: string;
   createdBy: string;
   questionType: string;
@@ -1038,7 +1039,7 @@ export async function createQuestion(data: {
   tags?: string;
 }) {
   try {
-    const [question] = await db.insert(questionBank).values(data).returning();
+    const [question] = await db.insert(questions).values(data).returning();
     return { success: true, data: question };
   } catch (error) {
     console.error('Error creating question:', error);
@@ -1048,7 +1049,7 @@ export async function createQuestion(data: {
 
 export async function getQuestions(filters: {
   companyId: string;
-  questionBankId?: string;
+  collectionId?: string;
   questionType?: string;
   category?: string;
   difficultyLevel?: string;
@@ -1056,33 +1057,33 @@ export async function getQuestions(filters: {
   tags?: string;
 }) {
   try {
-    const conditions: (SQL | undefined)[] = [eq(questionBank.companyId, filters.companyId)];
+    const conditions: (SQL | undefined)[] = [eq(questions.companyId, filters.companyId)];
 
-    if (filters.questionBankId) {
-      conditions.push(eq(questionBank.questionBankId, filters.questionBankId));
+    if (filters.collectionId) {
+      conditions.push(eq(questions.collectionId, filters.collectionId));
     }
 
     if (filters.questionType) {
-      conditions.push(eq(questionBank.questionType, filters.questionType));
+      conditions.push(eq(questions.questionType, filters.questionType));
     }
 
     if (filters.category) {
-      conditions.push(eq(questionBank.category, filters.category));
+      conditions.push(eq(questions.category, filters.category));
     }
 
     if (filters.difficultyLevel) {
-      conditions.push(eq(questionBank.difficultyLevel, filters.difficultyLevel));
+      conditions.push(eq(questions.difficultyLevel, filters.difficultyLevel));
     }
 
     if (filters.tags) {
-      conditions.push(like(questionBank.tags, `%${filters.tags}%`));
+      conditions.push(like(questions.tags, `%${filters.tags}%`));
     }
 
     if (filters.search) {
       const searchConditions = [
-        like(questionBank.question, `%${filters.search}%`),
-        like(questionBank.category, `%${filters.search}%`),
-        like(questionBank.tags, `%${filters.search}%`)
+        like(questions.question, `%${filters.search}%`),
+        like(questions.category, `%${filters.search}%`),
+        like(questions.tags, `%${filters.search}%`)
       ].filter((c): c is SQL => Boolean(c));
 
       if (searchConditions.length > 0) {
@@ -1092,24 +1093,24 @@ export async function getQuestions(filters: {
 
     const finalConditions = conditions.filter((c): c is SQL => Boolean(c));
 
-    const questions = await db.select()
-      .from(questionBank)
+    const questionResults = await db.select()
+      .from(questions)
       .where(and(...finalConditions))
-      .orderBy(desc(questionBank.createdAt));
+      .orderBy(desc(questions.createdAt));
 
-    return { success: true, data: questions };
+    return { success: true, data: questionResults };
   } catch (error) {
     console.error('Error fetching questions:', error);
     return { success: false, error: 'Failed to fetch questions' };
   }
 }
 
-export async function updateQuestion(id: string, data: Partial<typeof questionBank.$inferInsert>) {
+export async function updateQuestion(id: string, data: Partial<typeof questions.$inferInsert>) {
   try {
     const [question] = await db
-      .update(questionBank)
+      .update(questions)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(questionBank.id, id))
+      .where(eq(questions.id, id))
       .returning();
     
     return { success: true, data: question };
@@ -1122,8 +1123,8 @@ export async function updateQuestion(id: string, data: Partial<typeof questionBa
 export async function deleteQuestion(id: string) {
   try {
     await db
-      .delete(questionBank)
-      .where(eq(questionBank.id, id));
+      .delete(questions)
+      .where(eq(questions.id, id));
     
     return { success: true };
   } catch (error) {

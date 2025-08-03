@@ -111,13 +111,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Generate secure interview link with email authentication
-    const interviewLink = generateInterviewLinkWithEmail(
-      setup[0].interviewType || 'behavioral',
-      scheduleData.candidateId,
-      candidate[0].email,
-      scheduleData.setupId
-    );
+    // Generate secure interview link with email authentication  
+    const interviewLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/interview/${scheduleData.setupId}/lobby?email=${encodeURIComponent(candidate[0].email)}&setupId=${scheduleData.setupId}`;
 
     // Create interview record
     const [interview] = await db.insert(campaignInterviews).values({

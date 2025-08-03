@@ -75,7 +75,7 @@ export function useInterviewSetup(): UseInterviewSetupReturn {
               hours: Math.floor(setup.timeLimit / 60),
               minutes: setup.timeLimit % 60
             },
-            questionBank: setup.questionBankId,
+            questionBank: setup.questionCollectionId,
             numberOfQuestions: setup.numberOfQuestions,
             chooseRandom: setup.randomizeQuestions,
             difficulty: setup.difficultyLevel,
@@ -138,7 +138,7 @@ export function useInterviewSetup(): UseInterviewSetupReturn {
           roundName: round.name,
           interviewType: round.type,
           timeLimit: timeLimitInMinutes,
-          questionBankId: round.questionBankId || undefined, // Use questionBankId (UUID)
+          questionCollectionId: round.questionCollectionId || round.bankId || undefined, // Use questionCollectionId (UUID)
           numberOfQuestions: round.numberOfQuestions || 10,
           randomizeQuestions: round.chooseRandom || true,
           difficultyLevel: round.difficulty || 'medium',
@@ -153,24 +153,6 @@ export function useInterviewSetup(): UseInterviewSetupReturn {
       const allSuccessful = results.every(result => result.success);
       
       if (allSuccessful) {
-        // Save auto-scheduling configuration to job campaign if provided
-        if (data.autoScheduleConfig) {
-          try {
-            const { updateJobCampaign } = await import('@/lib/database/queries/campaigns');
-            const updateResult = await updateJobCampaign(data.campaignId, {
-              autoScheduleConfig: data.autoScheduleConfig
-            });
-            
-            if (!updateResult.success) {
-              console.error('Failed to save auto-scheduling config:', updateResult.error);
-              // Don't fail the entire operation, just log the error
-            }
-          } catch (autoScheduleError) {
-            console.error('Error saving auto-scheduling config:', autoScheduleError);
-            // Don't fail the entire operation, just log the error
-          }
-        }
-        
         setInterviewSetup({
           id: Date.now().toString(),
           campaignId: data.campaignId,
@@ -219,7 +201,7 @@ export function useInterviewSetup(): UseInterviewSetupReturn {
 }
 
 interface QuestionBank {
-  questionTypes: any;
+  questionTypes: Array<{ type: string; count: number }>;
   id: string;
   name: string;
   category: string;
@@ -258,17 +240,17 @@ export function useQuestionBanks() {
     const fetchQuestionBanks = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/content/questions/categories');
+        const response = await fetch('/api/content/questions/banks');
         const result = await response.json();
 
         if (result.success) {
           setQuestionBanks(result.data || []);
         } else {
-          setError(result.error || 'Failed to fetch question banks');
+          setError(result.error || 'Failed to fetch question collections');
         }
       } catch (err) {
-        setError('Failed to fetch question banks');
-        console.error('Error fetching question banks:', err);
+        setError('Failed to fetch question collections');
+        console.error('Error fetching question collections:', err);
       } finally {
         setLoading(false);
       }

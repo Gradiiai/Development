@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from "@/auth";;
 import { getQuestions } from '@/lib/database/queries/campaigns';
-import { questionBanks, questionBank } from '@/lib/database/schema';
+import { questionCollections, questions } from '@/lib/database/schema';
 import { db } from '@/lib/database/connection';
 import { eq, and, desc, ilike } from 'drizzle-orm';
 
@@ -38,30 +38,30 @@ export async function GET(req: NextRequest) {
     // Fetch all question banks for the company
 const banks = await db
       .select()
-      .from(questionBanks)
+      .from(questions)
       .where(
         and(
-          eq(questionBanks.companyId, companyId),
-          eq(questionBanks.isActive, true)
+          eq(questions.companyId, companyId),
+          eq(questions.isActive, true)
         )
       );
 
     // For each bank, get the number of questions and their types
     const bankResults = await Promise.all(
       banks.map(async (bank) => {
-        const questions = await db
+        const bankQuestions = await db
           .select({
-            questionType: questionBank.questionType
+            questionType: questions.questionType
           })
-          .from(questionBank)
+          .from(questions)
           .where(and(
-            eq(questionBank.questionBankId, bank.id),
-            eq(questionBank.companyId, companyId),
-            eq(questionBank.isActive, true)
+            eq(questions.collectionId, bank.id),
+            eq(questions.companyId, companyId),
+            eq(questions.isActive, true)
           ));
 
     const typeMap: Record<string, number> = {};
-    for (const q of questions) {
+    for (const q of bankQuestions) {
       typeMap[q.questionType] = (typeMap[q.questionType] || 0) + 1;
     }
 
@@ -72,7 +72,7 @@ const banks = await db
 
     return {
       ...bank,
-      questionCount: questions.length,
+      questionCount: bankQuestions.length,
       questionTypes,
         isActive: bank.isActive,
 

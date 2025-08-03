@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         // Get coding questions from question bank
         const questionsResult = await getQuestions({
           companyId: session.user.companyId!,
-          questionBankId: validatedData.questionBank,
+          collectionId: validatedData.questionBank,
           questionType: 'coding',
           difficultyLevel: validatedData.difficultyLevel
         });

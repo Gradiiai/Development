@@ -108,7 +108,8 @@ export function useQuestionBank(params?: { page?: number; limit?: number }) {
     async function fetchData() {
       try {
         setLoading(true);
-        const result = await apiClient.getQuestionBank(params);
+        const response = await fetch('/api/content/questions/banks');
+        const result = await response.json();
         setData(result.data);
       } catch (err) {
         setError(err);

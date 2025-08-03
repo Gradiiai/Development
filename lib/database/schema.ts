@@ -224,6 +224,7 @@ export const jobCampaigns = pgTable("job_campaigns", {
   jobDescriptionTemplateId: uuid("job_description_template_id").references(() => jobDescriptionTemplates.id),
   skillTemplateId: uuid("skill_template_id").references(() => skillTemplates.id),
   status: varchar("status", { length: 50 }).default("draft"), // draft, active, paused, closed
+  campaignType: varchar("campaign_type", { length: 20 }).default("specific").notNull(), // permanent, specific
   createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -234,7 +235,7 @@ export const jobCampaigns = pgTable("job_campaigns", {
   isHybrid: boolean("is_hybrid").default(false).notNull(),
   totalApplicants: integer("total_applicants").default(0).notNull(),
   activeApplicants: integer("active_applicants").default(0).notNull(),
-  autoScheduleConfig: jsonb("auto_schedule_config"), // JSON configuration for automated interview scheduling
+
 });
 
 // jobPortalSyncs table removed - job portal sync functionality deprecated
@@ -302,7 +303,7 @@ export const interviewSetups = pgTable("interview_setups", {
   roundName: varchar("round_name", { length: 255 }).notNull(),
   interviewType: varchar("interview_type", { length: 100 }).notNull(), // behavioral, coding, mcq, combo
   timeLimit: integer("time_limit").notNull(), // in minutes
-  questionBankId: varchar("question_bank_id", { length: 255 }),
+  questionCollectionId: uuid("question_collection_id").references(() => questionCollections.id), // Updated to reference questionCollections
   numberOfQuestions: integer("number_of_questions").notNull(),
   randomizeQuestions: boolean("randomize_questions").default(true),
   difficultyLevel: varchar("difficulty_level", { length: 100 }).notNull(),
@@ -338,86 +339,107 @@ export const campaignInterviews = pgTable("campaign_interviews", {
   timezone: varchar("timezone", { length: 100 }).default("UTC"),
 });
 
-// Question Banks for organizing questions into collections
-export const questionBanks = pgTable("question_banks", {
+// Simplified Question Collections (replaces questionBanks + questionBankTemplates)
+export const questionCollections = pgTable("question_collections", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }), // Nullable for system templates
+  createdBy: uuid("created_by").references(() => users.id), // Nullable for system templates
+  
+  // Basic info
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  category: varchar("category", { length: 100 }).notNull(), // Enhanced categories: technical, behavioral, aptitude, general-screening, soft-skills, domain-specific
-  subCategory: varchar("sub_category", { length: 100 }), // Sub-categories like algorithms, communication, logical-reasoning, etc.
-  tags: text("tags"), // Comma-separated tags
-  isActive: boolean("is_active").default(true),
-  isPublic: boolean("is_public").default(false),
-  isTemplate: boolean("is_template").default(false), // For system-provided template banks
-  questionCount: integer("question_count").default(0), // Cache question count for performance
-  usageCount: integer("usage_count").default(0), // Track how many campaigns use this bank
-  lastUsedAt: timestamp("last_used_at"), // Track when bank was last used
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Question Bank for reusable questions (now linked to question banks)
-export const questionBank = pgTable("question_bank", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  questionBankId: uuid("question_bank_id").notNull().references(() => questionBanks.id, { onDelete: "cascade" }),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
-  questionType: varchar("question_type", { length: 50 }).notNull(), // behavioral, coding, mcq, combo, aptitude, screening
-  category: varchar("category", { length: 100 }).notNull(), // Enhanced categories
-  subCategory: varchar("sub_category", { length: 100 }), // Specific sub-categories
-  difficultyLevel: varchar("difficulty_level", { length: 50 }).notNull(), // easy, medium, hard
-  question: text("question").notNull(),
-  expectedAnswer: text("expected_answer"),
-  sampleAnswer: text("sample_answer"),
-  scoringRubric: jsonb("scoring_rubric"), // JSON with scoring criteria
-  multipleChoiceOptions: jsonb("multiple_choice_options"), // For MCQ questions
-  correctAnswer: text("correct_answer"), // For MCQ and aptitude questions
-  explanation: text("explanation"), // Explanation for the correct answer
-  tags: text("tags"), // Comma-separated tags
-  skills: text("skills"), // Skills being assessed (comma-separated)
-  competencies: text("competencies"), // Competencies being evaluated
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  timeToAnswer: integer("time_to_answer"), // in seconds
-  isPublic: boolean("is_public").default(false),
-  aiGenerated: boolean("ai_generated").default(false),
-  usageCount: integer("usage_count").default(0),
-  averageScore: integer("average_score"),
-  validatedBy: uuid("validated_by").references(() => users.id), // For quality assurance
-  validatedAt: timestamp("validated_at"), // When question was validated
-  revisionNumber: integer("revision_number").default(1), // Track question revisions
-});
-
-// Question Bank Usage Tracking - Track which campaigns use which question banks
-export const questionBankUsage = pgTable("question_bank_usage", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  questionBankId: uuid("question_bank_id").notNull().references(() => questionBanks.id, { onDelete: "cascade" }),
-  campaignId: uuid("campaign_id").notNull().references(() => jobCampaigns.id, { onDelete: "cascade" }),
-  setupId: uuid("setup_id").references(() => interviewSetups.id, { onDelete: "cascade" }),
-  usageType: varchar("usage_type", { length: 50 }).notNull(), // 'primary', 'secondary', 'mixed'
-  roundNumber: integer("round_number"), // Which interview round uses this bank
-  questionsUsed: integer("questions_used").default(0), // Number of questions actually used
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastUsedAt: timestamp("last_used_at").defaultNow().notNull(),
-});
-
-// Pre-defined Question Bank Templates (System templates)
-export const questionBankTemplates = pgTable("question_bank_templates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"),
+  
+  // Categorization
   category: varchar("category", { length: 100 }).notNull(),
   subCategory: varchar("sub_category", { length: 100 }),
-  questionTypes: text("question_types"), // JSON array of supported question types
-  targetRoles: text("target_roles"), // JSON array of roles this template is for
-  difficultyLevels: text("difficulty_levels"), // JSON array of difficulty levels
-  estimatedQuestions: integer("estimated_questions"), // Estimated number of questions
+  tags: text("tags"), // JSON array of tags
+  
+  // Collection type (replaces separate template table)
+  collectionType: varchar("collection_type", { length: 50 }).notNull().default("custom"), // custom, system_template, shared
+  
+  // Status and visibility
   isActive: boolean("is_active").default(true),
+  isPublic: boolean("is_public").default(false),
+  
+  // Metadata
+  questionCount: integer("question_count").default(0),
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  // Template-specific fields (for system templates)
+  targetRoles: text("target_roles"), // JSON array for templates
+  difficultyLevels: text("difficulty_levels"), // JSON array for templates
+  estimatedQuestions: integer("estimated_questions"), // For templates
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Simplified Questions (replaces questionBank with cleaner naming)
+export const questions = pgTable("questions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  collectionId: uuid("collection_id").references(() => questionCollections.id, { onDelete: "cascade" }), // Nullable for standalone questions
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }), // Nullable for system questions
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  
+  // Question content
+  questionType: varchar("question_type", { length: 50 }).notNull(),
+  question: text("question").notNull(),
+  
+  // Answers and scoring
+  expectedAnswer: text("expected_answer"),
+  sampleAnswer: text("sample_answer"),
+  scoringRubric: jsonb("scoring_rubric"),
+  
+  // MCQ specific
+  multipleChoiceOptions: jsonb("multiple_choice_options"),
+  correctAnswer: text("correct_answer"),
+  explanation: text("explanation"),
+  
+  // Categorization
+  category: varchar("category", { length: 100 }).notNull(),
+  subCategory: varchar("sub_category", { length: 100 }),
+  difficultyLevel: varchar("difficulty_level", { length: 50 }).notNull(),
+  
+  // Metadata
+  tags: text("tags"), // JSON array
+  skills: text("skills"), // JSON array of skills assessed
+  competencies: text("competencies"), // JSON array of competencies
+  timeToAnswer: integer("time_to_answer"), // in seconds
+  
+  // Status and tracking
+  isActive: boolean("is_active").default(true),
+  isPublic: boolean("is_public").default(false),
+  aiGenerated: boolean("ai_generated").default(false),
+  
+  // Analytics
+  usageCount: integer("usage_count").default(0),
+  averageScore: integer("average_score"),
+  
+  // Quality assurance
+  validatedBy: uuid("validated_by").references(() => users.id),
+  validatedAt: timestamp("validated_at"),
+  revisionNumber: integer("revision_number").default(1),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Simplified Usage Tracking (replaces questionBankUsage)
+export const questionUsage = pgTable("question_usage", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  questionId: uuid("question_id").notNull().references(() => questions.id, { onDelete: "cascade" }),
+  collectionId: uuid("collection_id").references(() => questionCollections.id, { onDelete: "cascade" }),
+  campaignId: uuid("campaign_id").notNull().references(() => jobCampaigns.id, { onDelete: "cascade" }),
+  setupId: uuid("setup_id").references(() => interviewSetups.id, { onDelete: "cascade" }),
+  interviewId: uuid("interview_id"), // references interviews
+  candidateId: uuid("candidate_id"), // references candidates
+  
+  usageType: varchar("usage_type", { length: 50 }).notNull(), // interview, practice, assessment
+  roundNumber: integer("round_number"),
+  score: integer("score"), // actual score received
+  
+  usedAt: timestamp("used_at").defaultNow().notNull(),
 });
 
 // Skill Templates for job requirements

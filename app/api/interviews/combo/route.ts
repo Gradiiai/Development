@@ -115,13 +115,13 @@ export async function POST(request: NextRequest) {
         const [behavioralResult, mcqResult] = await Promise.all([
           getQuestions({
             companyId: session.user.companyId!,
-            questionBankId: validatedData.questionBank,
+            collectionId: validatedData.questionBank,
             questionType: 'behavioral',
             difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty
           }),
           getQuestions({
             companyId: session.user.companyId!,
-            questionBankId: validatedData.questionBank,
+            collectionId: validatedData.questionBank,
             questionType: 'mcq',
             difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty
           })

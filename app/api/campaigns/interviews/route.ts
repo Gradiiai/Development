@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         timeLimit: interviewSetups.timeLimit,
         numberOfQuestions: interviewSetups.numberOfQuestions,
         difficultyLevel: interviewSetups.difficultyLevel,
-        questionBankId: interviewSetups.questionBankId
+        questionCollectionId: interviewSetups.questionCollectionId
       })
       .from(interviewSetups)
       .where(eq(interviewSetups.id, interviewSetupId))
@@ -203,18 +203,18 @@ export async function POST(request: NextRequest) {
     
     try {
             // First, try to get questions from question bank if configured
-      const questionBankId = setup.questionBankId;
-      console.log(`🔍 Interview setup question bank ID: ${questionBankId}`);
+      const questionCollectionId = setup.questionCollectionId;
+      console.log(`🔍 Interview setup question bank ID: ${questionCollectionId}`);
 
-      // Validate that questionBankId is a valid UUID format
+      // Validate that questionCollectionId is a valid UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      const isValidUUID = questionBankId && uuidRegex.test(questionBankId);
+      const isValidUUID = questionCollectionId && uuidRegex.test(questionCollectionId);
 
-      if (questionBankId && isValidUUID) {
-        console.log(`📋 Using valid question bank: ${questionBankId}`);
+      if (questionCollectionId && isValidUUID) {
+        console.log(`📋 Using valid question bank: ${questionCollectionId}`);
         const questionsResult = await getQuestions({
           companyId: campaign.companyId,
-          questionBankId: questionBankId,
+          collectionId: questionCollectionId,
           questionType: interviewType,
           difficultyLevel: setup.difficultyLevel || undefined
         });
@@ -227,13 +227,13 @@ export async function POST(request: NextRequest) {
             questions: questionsResult.data
           };
         } else {
-          console.warn(`⚠️ Question bank ${questionBankId} is empty or unavailable, using AI fallback...`);
+          console.warn(`⚠️ Question bank ${questionCollectionId} is empty or unavailable, using AI fallback...`);
           throw new Error('Question bank unavailable');
         }
       } else {
-        if (questionBankId && !isValidUUID) {
-          console.warn(`⚠️ Invalid question bank ID format: "${questionBankId}" (not a valid UUID), using AI fallback...`);
-          throw new Error(`Invalid question bank ID format: ${questionBankId}`);
+        if (questionCollectionId && !isValidUUID) {
+          console.warn(`⚠️ Invalid question bank ID format: "${questionCollectionId}" (not a valid UUID), using AI fallback...`);
+          throw new Error(`Invalid question bank ID format: ${questionCollectionId}`);
         } else {
           console.warn(`⚠️ No question bank configured, using AI fallback...`);
           throw new Error('No question bank configured');

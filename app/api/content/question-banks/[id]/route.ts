@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
-import { questionBanks, questionBank } from '@/lib/database/schema';
+import { questionCollections, questions } from '@/lib/database/schema';
 import { eq, and, desc, ilike } from 'drizzle-orm';
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -20,18 +20,18 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       return NextResponse.json({ success: true, data: { bank: null, questions: [] } });
     }
 
-    // Get the question bank details
-    const [bank] = await db
+    // Get the question collection details
+    const [collection] = await db
       .select()
-      .from(questionBanks)
+      .from(questionCollections)
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ));
 
-    if (!bank) {
+    if (!collection) {
       return NextResponse.json(
-        { success: false, error: 'Question bank not found' },
+        { success: false, error: 'Question collection not found' },
         { status: 404 }
       );
     }
@@ -42,31 +42,31 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     
     // Build where conditions
     const whereConditions = [
-      eq(questionBank.questionBankId, bankId),
-      eq(questionBank.companyId, companyId),
-      eq(questionBank.isActive, true)
+      eq(questions.collectionId, bankId),
+      eq(questions.companyId, companyId),
+      eq(questions.isActive, true)
     ];
 
     if (questionType && questionType !== 'all') {
-      whereConditions.push(eq(questionBank.questionType, questionType));
+      whereConditions.push(eq(questions.questionType, questionType));
     }
 
     if (search) {
-      whereConditions.push(ilike(questionBank.question, `%${search}%`));
+      whereConditions.push(ilike(questions.question, `%${search}%`));
     }
 
-    // Get questions in the bank
-    const questions = await db
+    // Get questions in the collection
+    const collectionQuestions = await db
       .select()
-      .from(questionBank)
+      .from(questions)
       .where(and(...whereConditions))
-      .orderBy(desc(questionBank.createdAt));
+      .orderBy(desc(questions.createdAt));
 
     return NextResponse.json({ 
       success: true, 
       data: { 
-        bank,
-        questions 
+        collection,
+        questions: collectionQuestions 
       } 
     });
   } catch (error) {
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     const [updatedBank] = await db
-      .update(questionBanks)
+      .update(questionCollections)
       .set({
         name: body.name,
         description: body.description || null,
@@ -116,8 +116,8 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
         updatedAt: new Date(),
       })
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ))
       .returning();
 
@@ -158,14 +158,14 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     // Soft delete by setting isActive to false
     const [deletedBank] = await db
-      .update(questionBanks)
+      .update(questionCollections)
       .set({
         isActive: false,
         updatedAt: new Date(),
       })
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ))
       .returning();
 

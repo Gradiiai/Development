@@ -81,13 +81,13 @@ export async function GET(
         timeLimit: interviewSetups.timeLimit,
         numberOfQuestions: interviewSetups.numberOfQuestions,
         difficultyLevel: interviewSetups.difficultyLevel,
-        questionBankId: interviewSetups.questionBankId
+        questionCollectionId: interviewSetups.questionCollectionId
       })
       .from(campaignInterviews)
       .innerJoin(jobCampaigns, eq(campaignInterviews.campaignId, jobCampaigns.id))
       .innerJoin(companies, eq(jobCampaigns.companyId, companies.id))
       .leftJoin(interviewSetups, eq(campaignInterviews.setupId, interviewSetups.id))
-      .where(eq(campaignInterviews.interviewId, id))
+      .where(eq(campaignInterviews.setupId, id))
       .limit(1);
 
     if (campaignInterview.length > 0) {
@@ -106,21 +106,21 @@ export async function GET(
       let questionSource = 'question_bank';
       
       try {
-        if (campInterview.questionBankId) {
+        if (campInterview.questionCollectionId) {
           console.log(`🔍 Fetching questions from question bank:`, {
-            questionBankId: campInterview.questionBankId,
+            questionCollectionId: campInterview.questionCollectionId,
             questionType: interviewType,
             difficultyLevel: campInterview.difficultyLevel,
             numberOfQuestions: campInterview.numberOfQuestions
           });
 
-          // Validate that questionBankId is a valid UUID format
+          // Validate that questionCollectionId is a valid UUID format
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-          const isValidUUID = uuidRegex.test(campInterview.questionBankId);
+          const isValidUUID = uuidRegex.test(campInterview.questionCollectionId);
 
           if (!isValidUUID) {
-            console.warn(`⚠️ Invalid question bank ID format: "${campInterview.questionBankId}" (not a valid UUID), using AI fallback...`);
-            throw new Error(`Invalid question bank ID format: ${campInterview.questionBankId}`);
+            console.warn(`⚠️ Invalid question bank ID format: "${campInterview.questionCollectionId}" (not a valid UUID), using AI fallback...`);
+            throw new Error(`Invalid question bank ID format: ${campInterview.questionCollectionId}`);
           }
 
           // Get the company ID from the campaign data
@@ -133,8 +133,8 @@ export async function GET(
           if (campaignDetails.length > 0) {
             const questionsResult = await getQuestions({
               companyId: campaignDetails[0].companyId,
-              questionBankId: campInterview.questionBankId,
-              questionType: interviewType,
+              collectionId: campInterview.questionCollectionId,
+              questionType: campInterview.interviewType || interviewType,
               difficultyLevel: campInterview.difficultyLevel || undefined
             });
             
@@ -146,7 +146,7 @@ export async function GET(
               
               console.log(`✅ Fetched ${questions.length} questions from question bank`);
             } else {
-              console.warn(`⚠️ Question bank ${campInterview.questionBankId} is empty, using AI fallback...`);
+              console.warn(`⚠️ Question bank ${campInterview.questionCollectionId} is empty, using AI fallback...`);
               throw new Error('Question bank unavailable');
             }
           }
@@ -422,7 +422,7 @@ export async function POST(
         campaignId: campaignInterviews.campaignId
       })
       .from(campaignInterviews)
-      .where(eq(campaignInterviews.interviewId, id))
+      .where(eq(campaignInterviews.setupId, id))
       .limit(1);
 
     if (campaignInterview.length > 0) {
