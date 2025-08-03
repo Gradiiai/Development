@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/database/connection';
-import { CodingInterview } from '@/lib/database/schema';
+import { CodingInterview, users } from '@/lib/database/schema';
 import { auth } from '@/auth';
 import { desc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -75,6 +75,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Verify user exists in database
+    console.log(`Validating user existence for ID: ${session.user.id}`);
+    const userExists = await db
+      .select({ 
+        id: users.id, 
+        email: users.email, 
+        name: users.name, 
+        role: users.role,
+        isActive: users.isActive 
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    if (userExists.length === 0) {
+      console.error(`User not found in database: ${session.user.id}`);
+      console.error(`Session details:`, {
+        userId: session.user.id,
+        userEmail: session.user.email,
+        userRole: session.user.role,
+        companyId: session.user.companyId
+      });
+      return NextResponse.json({ 
+        error: 'User not found in database',
+        details: 'Your session may be invalid. Please sign out and sign in again.'
+      }, { status: 404 });
+    }
+
+    const user = userExists[0];
+    if (!user.isActive) {
+      console.error(`User account is inactive: ${session.user.id}`);
+      return NextResponse.json({ 
+        error: 'User account is inactive',
+        details: 'Your account has been deactivated. Please contact your administrator.'
+      }, { status: 403 });
+    }
+
+    console.log(`User validation successful for: ${user.email} (${user.role})`);
+
     const body = await request.json();
     const validatedData = createCodingInterviewSchema.parse(body);
 
@@ -133,7 +172,9 @@ export async function POST(request: NextRequest) {
     if (!validatedData.useQuestionBank) {
       // Generate coding questions using the AI API
       const formData = new FormData();
-      formData.append('topic', validatedData.interviewTopic);
+      // Use jobPosition and jobDescription to trigger the JSON response mode
+      formData.append('jobPosition', validatedData.interviewTopic || 'Software Developer');
+      formData.append('jobDescription', validatedData.problemDescription || 'Programming role requiring coding skills');
       formData.append('totalQuestions', (validatedData.numberOfQuestions || 3).toString());
       formData.append('difficulty', validatedData.difficultyLevel);
 
@@ -307,6 +348,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Verify user exists in database
+    const userExists = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    if (userExists.length === 0) {
+      console.error(`User not found in database: ${session.user.id}`);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const { searchParams } = new URL(request.url);
     const interviewId = searchParams.get('interviewId');
 
@@ -334,7 +387,9 @@ export async function PUT(request: NextRequest) {
 
     // Generate coding questions using the AI API
     const formData = new FormData();
-    formData.append('topic', validatedData.interviewTopic);
+    // Use jobPosition and jobDescription to trigger the JSON response mode
+    formData.append('jobPosition', validatedData.interviewTopic || 'Software Developer');
+    formData.append('jobDescription', validatedData.problemDescription || 'Programming role requiring coding skills');
     formData.append('totalQuestions', '3'); // Default to 3 coding questions
     formData.append('difficulty', validatedData.difficultyLevel);
 
@@ -358,33 +413,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Handle streaming response
-    const reader = questionsResponse.body?.getReader();
-    let result = '';
-
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        result += new TextDecoder().decode(value);
-      }
-    }
-
-    // Parse and clean the response
-    const cleanJsonQuestion = result
-      .replace(/```json\s*/i, '')
-      .replace(/```\s*$/, '')
-      .trim();
-
-    let generatedQuestions;
-    try {
-      generatedQuestions = JSON.parse(cleanJsonQuestion);
-      
-      if (!Array.isArray(generatedQuestions)) {
-        throw new Error('Questions must be an array');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse coding questions:', parseError);
+    const questionsResult = await questionsResponse.json();
+    
+    if (!questionsResult.questions || !Array.isArray(questionsResult.questions)) {
+      console.error('Invalid questions format received:', questionsResult);
       return NextResponse.json(
         { 
           error: "Invalid questions format", 
@@ -393,6 +425,8 @@ export async function PUT(request: NextRequest) {
         { status: 503 }
       );
     }
+    
+    const generatedQuestions = questionsResult.questions;
 
     // Calculate link expiry time (24 hours after the interview date and time)
     const interviewDateTime = moment(`${validatedData.interviewDate} ${validatedData.interviewTime}`);

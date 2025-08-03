@@ -51,6 +51,8 @@ export default function ComboInterviewPage({ params }: ComboInterviewProps) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
+  const email = searchParams.get('email');
+
   const [interview, setInterview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +69,6 @@ export default function ComboInterviewPage({ params }: ComboInterviewProps) {
   const recordedChunksRef = useRef<Blob[]>([]);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [fullInterviewRecording, setFullInterviewRecording] = useState<Blob | null>(null);
-
-  // Get email from URL search parameters
-  const email = searchParams.get('email');
 
   console.log('Combo interview email parameter:', email);
   console.log('Search params:', Object.fromEntries(searchParams.entries()));

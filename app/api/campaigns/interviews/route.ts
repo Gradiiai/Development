@@ -1,13 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createCampaignInterview, getCampaignInterviews, getQuestions } from '@/lib/database/queries/campaigns';
-import { db } from '@/lib/database/db';
-import { candidates, jobCampaigns, companies, interviewSetups, candidateUsers, campaignInterviews } from '@/lib/database/schema';
+import { db } from '@/lib/database/connection';
+import { candidates, jobCampaigns, companies, interviewSetups, candidateUsers, campaignInterviews, Interview, CodingInterview } from '@/lib/database/schema';
 import { eq } from 'drizzle-orm';
 import { sendSimpleEmail } from '@/lib/services/email/service';
 import { generateInterviewEmailTemplate, generateInterviewEmailText, generateEmailSubject } from '@/lib/services/email/templates';
-import { generateInterviewLink } from '@/lib/services/interview/scheduling';
 // Removed auto-registration import
+
+// Helper function to generate interview links
+function generateInterviewLink(
+  candidateId: string,
+  candidateEmail: string,
+  setupId: string,
+  interviewType: 'behavioral' | 'mcq' | 'combo' | 'coding',
+  interviewId: string
+): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const encodedEmail = encodeURIComponent(candidateEmail);
+  
+  // Use setupId as the main interview ID in the URL path
+  // and pass the generated interviewId as a query parameter
+  switch (interviewType) {
+    case 'coding':
+      return `${baseUrl}/candidate/interview/${setupId}/coding?email=${encodedEmail}&interviewId=${interviewId}`;
+    case 'mcq':
+      return `${baseUrl}/candidate/interview/${setupId}/mcq?email=${encodedEmail}&interviewId=${interviewId}`;
+    case 'behavioral':
+      return `${baseUrl}/candidate/interview/${setupId}/behavioral?email=${encodedEmail}&interviewId=${interviewId}`;
+    case 'combo':
+      return `${baseUrl}/candidate/interview/${setupId}/combo?email=${encodedEmail}&interviewId=${interviewId}`;
+    default:
+      return `${baseUrl}/candidate/interview/${setupId}?email=${encodedEmail}&interviewId=${interviewId}`;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +55,8 @@ export async function POST(request: NextRequest) {
       scheduledDate,
       scheduledTime,
       interviewerNotes,
-      candidateNotes
+      candidateNotes,
+      interviewType: overrideInterviewType
     } = body;
 
     // Handle both old scheduledAt format and new scheduledDate/scheduledTime format
@@ -160,9 +187,10 @@ export async function POST(request: NextRequest) {
     const generatedInterviewId = `interview_${campaignId}_${candidateId}_${Date.now()}`;
     
     // Generate interview link - handle interview type properly
-    let rawInterviewType = setup.interviewType as string;
+    // Use override interview type if provided, otherwise use setup's interview type
+    let rawInterviewType = overrideInterviewType || setup.interviewType as string;
     
-    console.log(`🔍 Raw interview type from setup: "${rawInterviewType}"`);
+    console.log(`🔍 Interview type: ${overrideInterviewType ? `Override: "${rawInterviewType}"` : `From setup: "${rawInterviewType}"`}`);
     
     // Map legacy technical type to behavioral, but preserve other types
     if (rawInterviewType === 'technical') {
@@ -212,11 +240,32 @@ export async function POST(request: NextRequest) {
 
       if (questionCollectionId && isValidUUID) {
         console.log(`📋 Using valid question bank: ${questionCollectionId}`);
+        console.log(`🔍 getQuestions parameters:`, {
+          companyId: campaign.companyId,
+          collectionId: questionCollectionId,
+          questionType: interviewType,
+          difficultyLevel: setup.difficultyLevel || undefined
+        });
+        
+        console.log(`🔍 Setup details:`, {
+          setupId: setup.id,
+          setupDifficultyLevel: setup.difficultyLevel,
+          setupInterviewType: setup.interviewType,
+          requestedInterviewType: interviewType
+        });
+        
         const questionsResult = await getQuestions({
           companyId: campaign.companyId,
           collectionId: questionCollectionId,
           questionType: interviewType,
           difficultyLevel: setup.difficultyLevel || undefined
+        });
+        
+        console.log(`🔍 getQuestions result:`, {
+          success: questionsResult.success,
+          dataExists: !!questionsResult.data,
+          dataLength: questionsResult.data?.length || 0,
+          error: questionsResult.error
         });
         
         if (questionsResult.success && questionsResult.data && questionsResult.data.length > 0) {
@@ -308,6 +357,59 @@ export async function POST(request: NextRequest) {
       ? `${candidateNotes}\n\n[System] ${questionSourceNote}`
       : `[System] ${questionSourceNote}`;
 
+    // Create an actual interview record to store the questions
+    // This prevents double generation by storing questions during scheduling
+    let actualInterviewRecord;
+    try {
+      if (interviewType === 'coding') {
+        // Create CodingInterview record
+        const [codingInterview] = await db.insert(CodingInterview).values({
+          interviewId: generatedInterviewId,
+          codingQuestions: JSON.stringify(questionsValidation.questions),
+          interviewTopic: campaign.jobTitle,
+          difficultyLevel: setup.difficultyLevel || 'medium',
+          problemDescription: `Campaign interview for ${campaign.jobTitle}`,
+          timeLimit: setup.timeLimit || 60,
+          programmingLanguage: 'javascript', // Default
+          createdBy: session.user.id,
+          companyId: campaign.companyId,
+          candidateName: candidate.name,
+          candidateEmail: candidate.email,
+          interviewStatus: 'scheduled',
+          interviewLink: interviewLink
+        }).returning();
+        
+        actualInterviewRecord = codingInterview;
+        console.log(`✅ Created CodingInterview record: ${codingInterview.interviewId}`);
+      } else {
+        // Create Interview record for behavioral, mcq, combo
+        const [interview] = await db.insert(Interview).values({
+          interviewId: generatedInterviewId,
+          interviewQuestions: JSON.stringify(questionsValidation.questions),
+          jobPosition: campaign.jobTitle,
+          jobDescription: `Campaign interview for ${campaign.jobTitle}`,
+          jobExperience: 'As specified in campaign',
+          createdBy: session.user.id,
+          companyId: campaign.companyId,
+          campaignId: campaignId,
+          candidateName: candidate.name,
+          candidateEmail: candidate.email,
+          interviewStatus: 'scheduled',
+          interviewLink: interviewLink,
+          interviewType: interviewType
+        }).returning();
+        
+        actualInterviewRecord = interview;
+        console.log(`✅ Created Interview record: ${interview.interviewId}`);
+      }
+    } catch (interviewCreationError) {
+      console.error('❌ Failed to create interview record:', interviewCreationError);
+      return NextResponse.json({
+        error: 'Failed to create interview record',
+        details: interviewCreationError instanceof Error ? interviewCreationError.message : 'Unknown error'
+      }, { status: 500 });
+    }
+
     // Create the campaign interview using the old candidates table ID
     // Note: campaignInterviews table references candidates.id, not candidateUsers.id
     console.log(`🚀 Creating campaign interview:`, {
@@ -318,7 +420,8 @@ export async function POST(request: NextRequest) {
       interviewType,
       interviewLink,
       scheduledAt: finalScheduledAt,
-      isNewCandidate
+      isNewCandidate,
+      actualInterviewId: actualInterviewRecord.interviewId
     });
 
     // Manually insert the campaign interview with all required fields including interviewLink

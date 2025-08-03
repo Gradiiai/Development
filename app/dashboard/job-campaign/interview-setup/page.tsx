@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/shared/badge';
 import { Separator } from '@/components/ui/shared/separator';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/shared/dialog';
 import { ArrowLeft, ArrowRight, Plus, Trash2, Clock, Users, Settings, Layers, Code, MessageSquare, Loader2, AlertCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -101,6 +102,8 @@ export default function InterviewSetupPage() {
   }, [rounds.length, updateScoringParameters]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddRoundDialog, setShowAddRoundDialog] = useState(false);
+  const [selectedInterviewType, setSelectedInterviewType] = useState<'behavioral' | 'mcq' | 'coding' | 'combo'>('mcq');
   
 
   
@@ -139,8 +142,14 @@ export default function InterviewSetupPage() {
     }
   };
 
-  const addRound = () => {
-    addRoundToStore();
+  const handleAddRound = () => {
+    setShowAddRoundDialog(true);
+  };
+
+  const confirmAddRound = () => {
+    addRoundToStore(selectedInterviewType);
+    setShowAddRoundDialog(false);
+    setSelectedInterviewType('mcq'); // Reset to default
   };
 
   const removeRound = (id: string) => {
@@ -264,7 +273,7 @@ export default function InterviewSetupPage() {
                 <Calendar className="w-4 h-4 mr-1" />
                 Step 2
               </Badge>
-              <Button onClick={addRound} className="flex items-center gap-2">
+              <Button onClick={handleAddRound} className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 Add Round
               </Button>
@@ -579,6 +588,78 @@ export default function InterviewSetupPage() {
             </Button>
           </div>
         </motion.div>
+
+        {/* Add Round Dialog */}
+        <Dialog open={showAddRoundDialog} onOpenChange={setShowAddRoundDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Interview Round</DialogTitle>
+              <DialogDescription>
+                Select the type of interview for this round
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label>Interview Type</Label>
+                <Select 
+                  value={selectedInterviewType} 
+                  onValueChange={(value: 'behavioral' | 'mcq' | 'coding' | 'combo') => 
+                    setSelectedInterviewType(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select interview type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="behavioral">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-blue-500" />
+                        <span>BEHAVIORAL</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="mcq">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-purple-500" />
+                        <span>MCQ</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="coding">
+                      <div className="flex items-center gap-2">
+                        <Code className="h-4 w-4 text-green-500" />
+                        <span>CODING</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="combo">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-orange-500" />
+                        <span>COMBO</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose the interview type for this round
+                </p>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAddRoundDialog(false)} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={confirmAddRound} 
+                  className="flex-1"
+                >
+                  Add Round
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

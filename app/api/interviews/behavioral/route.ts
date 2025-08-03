@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/database/connection";
-import { Interview } from "@/lib/database/schema";
+import { Interview, users } from "@/lib/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@/auth";
 import { v4 as uuidv4 } from 'uuid';
@@ -118,6 +118,18 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify user exists in database
+    const userExists = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    if (userExists.length === 0) {
+      console.error(`User not found in database: ${session.user.id}`);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Parse and validate request body

@@ -682,7 +682,7 @@ export default function InterviewLobby() {
       } else if (interview.type === "combo") {
         router.push(`/candidate/interview/${interview.id}/combo${queryString}`);
       } else {
-        router.push(`/candidate/interview/${interview.id}/regular${queryString}`);
+        router.push(`/candidate/interview/${interview.id}/behavioral${queryString}`);
       }
     } catch (error) {
       console.error('Media access verification failed:', error);

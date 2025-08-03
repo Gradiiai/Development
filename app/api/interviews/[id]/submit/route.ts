@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/database/connection";
-import { Interview, InterviewAnalytics } from "@/lib/database/schema";
+import { Interview, InterviewAnalytics, CodingInterview, candidateInterviewHistory } from "@/lib/database/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 
@@ -35,22 +35,40 @@ export async function POST(
     // For interviewer submissions, we check authentication
     const session = await auth();
     
-    // Get interview from Interview table
-    const [interview] = await db
+    // Try to get interview from Interview table first (behavioral, mcq, combo)
+    let interview = await db
       .select()
       .from(Interview)
       .where(eq(Interview.interviewId, id))
       .limit(1);
 
-    if (!interview) {
-      return NextResponse.json(
-        { error: "Interview not found" },
-        { status: 404 }
-      );
+    let codingInterview: any[] = [];
+    let interviewType = 'behavioral'; // default
+
+    if (interview.length === 0) {
+      // Try CodingInterview table
+      codingInterview = await db
+        .select()
+        .from(CodingInterview)
+        .where(eq(CodingInterview.interviewId, id))
+        .limit(1);
+
+      if (codingInterview.length === 0) {
+        return NextResponse.json(
+          { error: "Interview not found" },
+          { status: 404 }
+        );
+      }
+      
+      interviewType = 'coding';
+    } else {
+      interviewType = interview[0].interviewType || 'behavioral';
     }
 
+    const currentInterview = interview.length > 0 ? interview[0] : codingInterview[0];
+
     // If session exists, verify ownership
-    if (session?.user?.id && interview.createdBy !== session.user.id) {
+    if (session?.user?.id && currentInterview.createdBy !== session.user.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 403 }
@@ -58,14 +76,14 @@ export async function POST(
     }
 
     // Check if interview is in a valid state to submit
-    if (interview.interviewStatus === 'completed') {
+    if (currentInterview.interviewStatus === 'completed') {
       return NextResponse.json(
         { error: "Interview has already been completed" },
         { status: 400 }
       );
     }
 
-    if (interview.interviewStatus === 'scheduled') {
+    if (currentInterview.interviewStatus === 'scheduled') {
       return NextResponse.json(
         { error: "Interview has not been started yet" },
         { status: 400 }
@@ -73,7 +91,7 @@ export async function POST(
     }
 
     // Verify candidate email if provided
-    if (candidateEmail && interview.candidateEmail && interview.candidateEmail !== candidateEmail) {
+    if (candidateEmail && currentInterview.candidateEmail && currentInterview.candidateEmail !== candidateEmail) {
       return NextResponse.json(
         { error: "Candidate email mismatch" },
         { status: 403 }
@@ -107,11 +125,21 @@ export async function POST(
       updateData.candidateName = candidateName;
     }
 
-    const [updatedInterview] = await db
-      .update(Interview)
-      .set(updateData)
-      .where(eq(Interview.interviewId, id))
-      .returning();
+    // Update the appropriate table based on interview type
+    let updatedInterview;
+    if (interviewType === 'coding') {
+      [updatedInterview] = await db
+        .update(CodingInterview)
+        .set(updateData)
+        .where(eq(CodingInterview.interviewId, id))
+        .returning();
+    } else {
+      [updatedInterview] = await db
+        .update(Interview)
+        .set(updateData)
+        .where(eq(Interview.interviewId, id))
+        .returning();
+    }
 
     // Update or create analytics record
     try {
@@ -137,12 +165,12 @@ export async function POST(
           .insert(InterviewAnalytics)
           .values({
             interviewId: id,
-            interviewType: interview.interviewType || 'behavioral',
+            interviewType: interviewType,
             candidateName: updatedInterview.candidateName || candidateName || 'Unknown',
             candidateEmail: updatedInterview.candidateEmail || candidateEmail || '',
-            interviewerEmail: interview.createdBy || '',
-            scheduledTime: interview.interviewDate && interview.interviewTime 
-              ? new Date(`${interview.interviewDate}T${interview.interviewTime}`)
+            interviewerEmail: currentInterview.createdBy || '',
+            scheduledTime: currentInterview.interviewDate && currentInterview.interviewTime 
+              ? new Date(`${currentInterview.interviewDate}T${currentInterview.interviewTime}`)
               : null,
             ...analyticsData,
           });
@@ -150,6 +178,63 @@ export async function POST(
     } catch (analyticsError) {
       console.error('Error updating analytics:', analyticsError);
       // Continue execution even if analytics fails
+    }
+
+    // Save answers to candidate interview history for result fetching
+    try {
+      const structuredAnswers = {
+        answers: formattedAnswers,
+        submittedAt: new Date().toISOString(),
+        interviewType: interviewType,
+        timeSpent: totalTimeSpent || 0,
+        score: answeredQuestions,
+        maxScore: totalQuestions,
+        completionRate: completionRate
+      };
+
+      // Check if candidate interview history record exists
+      const existingHistory = await db
+        .select()
+        .from(candidateInterviewHistory)
+        .where(eq(candidateInterviewHistory.interviewId, id))
+        .limit(1);
+
+      if (existingHistory.length > 0) {
+        // Update existing record
+        await db
+          .update(candidateInterviewHistory)
+          .set({
+            status: 'completed',
+            completedAt: new Date(),
+            feedback: JSON.stringify(structuredAnswers),
+            score: answeredQuestions,
+            maxScore: totalQuestions,
+            duration: totalTimeSpent || 0,
+            passed: completionRate >= 60
+          })
+          .where(eq(candidateInterviewHistory.interviewId, id));
+      } else {
+        // Create new record if it doesn't exist
+        await db.insert(candidateInterviewHistory).values({
+          interviewId: id,
+          candidateId: candidateEmail || 'unknown', // Use email as fallback ID
+          interviewType: interviewType,
+          status: 'completed',
+          completedAt: new Date(),
+          feedback: JSON.stringify(structuredAnswers),
+          score: answeredQuestions,
+          maxScore: totalQuestions,
+          duration: totalTimeSpent || 0,
+          passed: completionRate >= 60,
+          startedAt: new Date(), // Assume started at completion time for now
+          roundNumber: 1
+        });
+      }
+
+      console.log(`Saved interview results to candidate history for interview ${id}`);
+    } catch (historyError) {
+      console.error('Error saving to candidate interview history:', historyError);
+      // Continue execution even if history saving fails
     }
 
     return NextResponse.json({

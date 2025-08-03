@@ -188,7 +188,7 @@ export const candidateAccess = pgTable("candidate_access", {
   token: varchar("token", { length: 255 }).notNull().unique(),
   candidateEmail: varchar("candidate_email", { length: 255 }).notNull(),
   interviewId: varchar("interview_id").notNull(),
-  interviewType: varchar("interview_type").notNull(), // 'regular' or 'coding'
+  interviewType: varchar("interview_type").notNull(), // 'behavioral', 'coding', 'mcq', or 'combo'
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

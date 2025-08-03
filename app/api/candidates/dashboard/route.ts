@@ -200,10 +200,10 @@ export async function GET(request: NextRequest) {
       }))
     );
 
-    // Combine all interviews
+    // Combine all interviews with unique IDs to prevent React key conflicts
     const allInterviews = [
-      ...historyInterviews.map(interview => ({
-        id: interview.id,
+      ...historyInterviews.map((interview, index) => ({
+        id: `history_${interview.id}`,
         interviewId: interview.interviewId,
         type: interview.interviewType,
         round: interview.roundNumber,
@@ -217,8 +217,8 @@ export async function GET(request: NextRequest) {
         interviewLink: interview.interviewLink,
         isDirect: !interview.applicationId // Flag to identify direct interviews
       })),
-      ...codingInterviews.map(interview => ({
-        id: interview.id,
+      ...codingInterviews.map((interview, index) => ({
+        id: `coding_${interview.id}`,
         interviewId: interview.interviewId,
         type: 'coding',
         round: 1,
@@ -231,8 +231,8 @@ export async function GET(request: NextRequest) {
         canStart: interview.interviewLink && interview.interviewStatus === "scheduled",
         interviewLink: interview.interviewLink
       })),
-      ...directScheduledInterviews.map((interview: any) => ({
-        id: interview.id,
+      ...directScheduledInterviews.map((interview: any, index) => ({
+        id: `direct_${interview.id}`,
         interviewId: interview.interviewId,
         type: interview.interviewType,
         round: 1,
@@ -245,12 +245,12 @@ export async function GET(request: NextRequest) {
         canStart: interview.interviewLink && interview.interviewStatus === "scheduled",
         interviewLink: interview.interviewLink
       })),
-      ...campaignScheduledInterviews.map(interview => {
+      ...campaignScheduledInterviews.map((interview, index) => {
         const canStart = interview.interviewLink && interview.status === "scheduled";
         console.log(`🎯 Campaign interview ${interview.id}: canStart=${canStart}, hasLink=${!!interview.interviewLink}, status=${interview.status}`);
         
         return {
-          id: interview.id,
+          id: `campaign_${interview.id}`,
           interviewId: interview.interviewId,
           type: interview.interviewType,
           round: 1,

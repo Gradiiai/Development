@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/shared/dropdown-menu';
 import { SubscriptionModal } from '@/components/admin/SubscriptionModal';
+import { PlanManagementModal } from '@/components/admin/PlanManagementModal';
 import { getPlanConfig, getPlanIcon } from '@/lib/plan-config';
 
 interface SubscriptionsClientProps {
@@ -30,6 +31,7 @@ interface SubscriptionsClientProps {
 export default function SubscriptionsClient({ subscriptionData }: SubscriptionsClientProps) {
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [subscriptions, setSubscriptions] = useState(subscriptionData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -224,14 +226,11 @@ export default function SubscriptionsClient({ subscriptionData }: SubscriptionsC
               {isSyncing ? 'Syncing...' : 'Sync Stripe'}
             </Button>
             <Button 
-              onClick={() => {
-                setSelectedCompany(null);
-                setIsModalOpen(true);
-              }}
+              onClick={() => setIsPlanModalOpen(true)}
               className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Create Plan
+              Manage Plans
             </Button>
           </div>
         </div>
@@ -476,6 +475,15 @@ export default function SubscriptionsClient({ subscriptionData }: SubscriptionsC
         }}
         onUpdate={handleManualRefresh}
         company={selectedCompany}
+      />
+
+      {/* Plan Management Modal */}
+      <PlanManagementModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        onPlansUpdated={() => {
+          fetchSubscriptions();
+        }}
       />
     </div>
   );

@@ -8,7 +8,7 @@ import crypto from "crypto";
 const createAccessSchema = z.object({
   candidateEmail: z.string().email(),
   interviewId: z.string(),
-  interviewType: z.enum(["regular", "coding", "combo"]),
+  interviewType: z.enum(["behavioral", "coding", "mcq", "combo"]),
   expiresInHours: z.number().min(1).max(168).default(24), // 1 hour to 7 days
 });
 

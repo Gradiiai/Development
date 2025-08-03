@@ -132,7 +132,7 @@ function jobCampaignReducer(state: JobCampaignState, action: JobCampaignAction):
       const newRound: InterviewRound = {
         id: `round-${Date.now()}`,
         name: `Round ${state.scoringParameters.rounds.length + 1}`,
-        type: 'behavioral',
+        type: action.payload?.type || 'behavioral',
         timeLimit: { hours: 1, minutes: 0 },
         questionBank: '',
         numberOfQuestions: 5,
@@ -221,7 +221,7 @@ interface JobCampaignContextType {
   setCurrentStep: (step: number) => void;
   // Scoring Parameters Actions
   updateScoringParameters: (params: Partial<ScoringParameters>) => void;
-  addRound: () => void;
+  addRound: (type?: 'behavioral' | 'mcq' | 'coding' | 'combo') => void;
   removeRound: (roundId: string) => void;
   updateRound: (roundId: string, field: keyof InterviewRound, value: any) => void;
   toggleRoundEnabled: (roundId: string) => void;
@@ -316,8 +316,8 @@ export function JobCampaignProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_ROUND', payload: { roundId, field, value } });
   };
 
-  const addRound = () => {
-    dispatch({ type: 'ADD_ROUND' });
+  const addRound = (type?: 'behavioral' | 'mcq' | 'coding' | 'combo') => {
+    dispatch({ type: 'ADD_ROUND', payload: { type } });
   };
 
   const removeRound = (roundId: string) => {

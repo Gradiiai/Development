@@ -148,7 +148,6 @@ export default function InterviewStartPage({ params }: InterviewStartProps) {
   const getInterviewTypeInfo = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'behavioral':
-      case 'regular':
         return {
           icon: MessageSquare,
           title: 'Behavioral Interview',
@@ -212,15 +211,14 @@ export default function InterviewStartPage({ params }: InterviewStartProps) {
         case 'mcq':
           redirectUrl = `/candidate/interview/${interviewId}/mcq?email=${encodeURIComponent(email!)}`;
           break;
-        case 'regular':
-          case 'behavioral':
-          redirectUrl = `/candidate/interview/${interviewId}/regular?email=${encodeURIComponent(email!)}`;
+        case 'behavioral':
+          redirectUrl = `/candidate/interview/${interviewId}/behavioral?email=${encodeURIComponent(email!)}`;
           break;
         case 'combo':
           redirectUrl = `/candidate/interview/${interviewId}/combo?email=${encodeURIComponent(email!)}`;
           break;
         default:
-          redirectUrl = `/candidate/interview/${interviewId}/regular?email=${encodeURIComponent(email!)}`;
+          redirectUrl = `/candidate/interview/${interviewId}/behavioral?email=${encodeURIComponent(email!)}`;
       }
       
       router.push(redirectUrl);
