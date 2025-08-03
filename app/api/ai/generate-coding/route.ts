@@ -5,7 +5,73 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const generatePrompt = (topic: string,totalQuestions:number): string => {
+// Enhanced language support with modern programming languages
+const SUPPORTED_LANGUAGES = {
+  'python': { name: 'Python', extension: 'py', comment: '#' },
+  'javascript': { name: 'JavaScript', extension: 'js', comment: '//' },
+  'typescript': { name: 'TypeScript', extension: 'ts', comment: '//' },
+  'java': { name: 'Java', extension: 'java', comment: '//' },
+  'cpp': { name: 'C++', extension: 'cpp', comment: '//' },
+  'php': { name: 'PHP', extension: 'php', comment: '//' },
+  'html': { name: 'HTML', extension: 'html', comment: '<!--' },
+  'css': { name: 'CSS', extension: 'css', comment: '/*' },
+  'sql': { name: 'SQL', extension: 'sql', comment: '--' },
+  'rust': { name: 'Rust', extension: 'rs', comment: '//' },
+};
+
+// Smart language detection from job descriptions and titles
+const detectLanguagesFromJob = (jobPosition: string, jobDescription: string): string[] => {
+  const text = `${jobPosition} ${jobDescription}`.toLowerCase();
+  const detectedLanguages: string[] = [];
+  
+  // Language keyword mapping (only supported languages)
+  const languageKeywords = {
+    'python': ['python', 'django', 'flask', 'pandas', 'numpy', 'fastapi', 'py'],
+    'javascript': ['javascript', 'js', 'node', 'react', 'vue', 'angular', 'express', 'next'],
+    'typescript': ['typescript', 'ts', 'angular', 'next.js', 'nest'],
+    'java': ['java', 'spring', 'hibernate', 'maven', 'gradle', 'jvm'],
+    'cpp': ['c++', 'cpp', 'c plus', 'unreal', 'qt'],
+    'php': ['php', 'laravel', 'symfony', 'wordpress', 'drupal'],
+    'rust': ['rust', 'cargo', 'rustc'],
+    'sql': ['sql', 'mysql', 'postgresql', 'oracle', 'database', 'mongodb', 'nosql'],
+    'html': ['html', 'html5', 'web development', 'frontend', 'markup'],
+    'css': ['css', 'css3', 'sass', 'scss', 'less', 'styling', 'bootstrap'],
+  };
+  
+  // Check for language keywords
+  Object.entries(languageKeywords).forEach(([lang, keywords]) => {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      detectedLanguages.push(lang);
+    }
+  });
+  
+  // Default fallback based on common job roles
+  if (detectedLanguages.length === 0) {
+    if (text.includes('frontend') || text.includes('front-end')) {
+      detectedLanguages.push('javascript', 'typescript', 'html', 'css');
+    } else if (text.includes('backend') || text.includes('back-end')) {
+      detectedLanguages.push('python', 'javascript', 'java');
+    } else if (text.includes('fullstack') || text.includes('full-stack')) {
+      detectedLanguages.push('javascript', 'typescript', 'python');
+    } else if (text.includes('data')) {
+      detectedLanguages.push('python', 'sql');
+    } else if (text.includes('database')) {
+      detectedLanguages.push('sql', 'python');
+    } else {
+      // Ultimate fallback
+      detectedLanguages.push('python', 'javascript');
+    }
+  }
+  
+  return [...new Set(detectedLanguages)]; // Remove duplicates
+};
+
+const generatePrompt = (topic: string, totalQuestions: number, languages: string[] = ['python', 'javascript']): string => {
+  const languageList = languages.map(lang => SUPPORTED_LANGUAGES[lang as keyof typeof SUPPORTED_LANGUAGES]?.name || lang).join(', ');
+  const solutionFields = languages.reduce((acc, lang) => {
+    acc[lang] = `${SUPPORTED_LANGUAGES[lang as keyof typeof SUPPORTED_LANGUAGES]?.name || lang} code`;
+    return acc;
+  }, {} as Record<string, string>);
 
   return `
 Generate "${totalQuestions}" coding questions related to the topic: "${topic}".
@@ -17,7 +83,7 @@ For each question, provide the following:
 4. Difficulty level
 5. Constraints
 6. Hints
-7. Solution in Python, PHP, and TypeScript
+7. Solution in: ${languageList}
 8. Explanation of the solution
 
 Format the response as a JSON array:
@@ -35,12 +101,10 @@ Format the response as a JSON array:
     "difficulty": "Easy | Medium | Hard",
     "constraints": ["Constraint 1", "Constraint 2"],
     "hints": ["Hint 1", "Hint 2"],
-    "solution": {
-      "python": "Python code",
-      "php": "PHP code",
-      "typescript": "TypeScript code"
-    },
-    "explanation": "Explanation of how the solution works"
+    "solution": ${JSON.stringify(solutionFields, null, 6)},
+    "explanation": "Explanation of how the solution works",
+    "primaryLanguage": "${languages[0]}",
+    "supportedLanguages": ${JSON.stringify(languages)}
   }
 ]
 `.trim();
@@ -58,14 +122,39 @@ export async function POST(request: NextRequest) {
     const resumeText = formData.get("resumeText") as string;
     const totalQuestions = parseInt(formData.get("totalQuestions") as string) || (topic ? 3 : 5);
     const difficulty = (formData.get("difficulty") as string) || "medium";
+    
+    // Get preferred languages (can be passed explicitly or auto-detected)
+    const preferredLanguagesParam = formData.get("languages") as string;
+    let preferredLanguages: string[] = [];
+    
+    if (preferredLanguagesParam) {
+      // Parse explicitly provided languages
+      preferredLanguages = preferredLanguagesParam.split(',').map(lang => lang.trim().toLowerCase());
+    } else if (jobPosition && jobDescription) {
+      // Auto-detect languages from job description
+      preferredLanguages = detectLanguagesFromJob(jobPosition, jobDescription);
+      console.log(`🤖 Auto-detected languages for "${jobPosition}":`, preferredLanguages);
+    } else {
+      // Default fallback
+      preferredLanguages = ['python', 'javascript'];
+    }
+    
+    // Limit to maximum 3 languages for practical question generation
+    preferredLanguages = preferredLanguages.slice(0, 3);
 
     let prompt: string;
     
     if (topic) {
       // Question bank mode - topic-based generation
-      prompt = generatePrompt(topic,totalQuestions);
+      prompt = generatePrompt(topic, totalQuestions, preferredLanguages);
     } else if (jobPosition && jobDescription) {
-      // Standalone interview mode - job-based generation
+      // Standalone interview mode - job-based generation with smart language detection
+      const languageList = preferredLanguages.map(lang => SUPPORTED_LANGUAGES[lang as keyof typeof SUPPORTED_LANGUAGES]?.name || lang).join(', ');
+      const solutionFields = preferredLanguages.reduce((acc, lang) => {
+        acc[lang] = `${SUPPORTED_LANGUAGES[lang as keyof typeof SUPPORTED_LANGUAGES]?.name || lang} code`;
+        return acc;
+      }, {} as Record<string, string>);
+      
       prompt = `Generate exactly ${totalQuestions} coding questions for a ${jobPosition} role.
 
 Job Details:
@@ -74,6 +163,7 @@ Job Details:
 - Experience Level: ${yearsOfExperience || "Not specified"}
 - Resume Context: ${resumeText || "No additional context"}
 - Difficulty: ${difficulty}
+- Primary Programming Languages: ${languageList}
 
 For each question, provide the following:
 1. Title
@@ -82,7 +172,7 @@ For each question, provide the following:
 4. Difficulty level
 5. Constraints
 6. Hints
-7. Solution in Python, PHP, and TypeScript
+7. Solution in: ${languageList}
 8. Explanation of the solution
 9. Question type: "coding"
 10. Answer field with brief solution description
@@ -105,12 +195,10 @@ Format the response as a JSON array:
     "difficulty": "Easy | Medium | Hard",
     "constraints": ["Constraint 1", "Constraint 2"],
     "hints": ["Hint 1", "Hint 2"],
-    "solution": {
-      "python": "Python code",
-      "php": "PHP code",
-      "typescript": "TypeScript code"
-    },
-    "explanation": "Explanation of how the solution works"
+    "solution": ${JSON.stringify(solutionFields, null, 6)},
+    "explanation": "Explanation of how the solution works",
+    "primaryLanguage": "${preferredLanguages[0]}",
+    "supportedLanguages": ${JSON.stringify(preferredLanguages)}
   }
 ]`;
     } else {
@@ -159,17 +247,21 @@ Format the response as a JSON array:
         const parsedQuestions = JSON.parse(responseText);
         if (!Array.isArray(parsedQuestions)) throw new Error("Response is not a JSON array");
 
-  return NextResponse.json({
-    questions: parsedQuestions,
-    metadata: {
-      source: "question-bank",
-      questionType: "coding",
-      topic,
-      totalQuestions,
-      difficulty,
-      generatedAt: new Date().toISOString(),
-    },
-  });
+        return NextResponse.json({
+          questions: parsedQuestions,
+          metadata: {
+            source: topic ? "question-bank" : "standalone-interview",
+            questionType: "coding",
+            topic,
+            jobPosition,
+            totalQuestions,
+            difficulty,
+            detectedLanguages: preferredLanguages,
+            primaryLanguage: preferredLanguages[0],
+            supportedLanguages: Object.keys(SUPPORTED_LANGUAGES),
+            generatedAt: new Date().toISOString(),
+          },
+        });
       } catch (parseError) {
         console.error("JSON parsing failed:", parseError);
         return NextResponse.json(

@@ -293,11 +293,11 @@ export default function TemplatesPage() {
     }
   };
 
-  const handleDeleteTemplate = async (id: string) => {
+  const handleDeleteTemplate = async (template: Template) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
-      const response = await fetch(`/api/content/templates?id=${id}`, {
+      const response = await fetch(`/api/content/templates?id=${template.id}&type=${template.type}`, {
         method: 'DELETE',
       });
 
@@ -779,7 +779,7 @@ export default function TemplatesPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => handleDeleteTemplate(template.id)}
+                          onClick={() => handleDeleteTemplate(template)}
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4 mr-1" />

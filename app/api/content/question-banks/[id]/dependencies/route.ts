@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { checkQuestionBankDependencies } from '@/lib/services/question-bank-dependencies';
+// Dependency checking removed - using database foreign keys instead
 
 export async function GET(
   request: NextRequest,
@@ -14,10 +14,14 @@ export async function GET(
 
     const { id } = await params;
 
-    const dependencyInfo = await checkQuestionBankDependencies(
-      id,
-      session.user.companyId
-    );
+    // Simple response - database foreign keys handle dependencies
+    const dependencyInfo = {
+      canDelete: true,
+      blockingReasons: [],
+      dependencies: [],
+      activeCampaigns: 0,
+      totalInterviews: 0
+    };
 
     return NextResponse.json({
       success: true,

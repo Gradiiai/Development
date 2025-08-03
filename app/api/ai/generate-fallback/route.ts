@@ -200,18 +200,36 @@ Generate ${numberOfQuestions} questions now:`;
       throw new Error("AI response is not a valid JSON array");
     }
 
-    // Ensure each question has required fields
+    // Ensure each question matches the database schema exactly
     const validatedQuestions = questions.map((q, index) => ({
+      // Core fields (matching questions table schema)
       id: q.id || `ai_generated_${Date.now()}_${index}`,
+      questionType: q.questionType || interviewType,
       question: q.question || `Generated question ${index + 1}`,
+      
+      // Answer fields
       expectedAnswer: q.expectedAnswer || "Evaluate based on relevance and depth of response",
       sampleAnswer: q.sampleAnswer || "Look for specific examples and clear reasoning",
-      questionType: q.questionType || interviewType,
+      correctAnswer: q.correctAnswer || null,
+      explanation: q.explanation || null,
+      
+      // MCQ specific - map options to multipleChoiceOptions (matching schema)
+      multipleChoiceOptions: q.options ? JSON.stringify(q.options) : null,
+      
+      // Categorization
       category: q.category || "General",
       difficultyLevel: q.difficultyLevel || difficultyLevel,
-      ...(q.options && { options: q.options }),
-      ...(q.correctAnswer && { correctAnswer: q.correctAnswer }),
-      ...(q.explanation && { explanation: q.explanation })
+      
+      // Metadata
+      aiGenerated: true, // Mark as AI generated
+      isActive: true,
+      tags: null,
+      skills: null,
+      competencies: null,
+      timeToAnswer: null,
+      usageCount: 0,
+      averageScore: null,
+      revisionNumber: 1
     }));
 
     console.log(`✅ Successfully generated ${validatedQuestions.length} questions using AI`);

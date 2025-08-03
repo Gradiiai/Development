@@ -7,6 +7,11 @@ import { java } from "@codemirror/lang-java";
 import { cpp } from "@codemirror/lang-cpp";
 import { python } from "@codemirror/lang-python";
 import { php } from "@codemirror/lang-php";
+import { javascript } from "@codemirror/lang-javascript";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { sql } from "@codemirror/lang-sql";
+import { rust } from "@codemirror/lang-rust";
 import { foldGutter } from "@codemirror/language";
 import { history, historyKeymap } from "@codemirror/commands";
 import { bracketMatching } from "@codemirror/language";
@@ -16,14 +21,21 @@ import { defaultKeymap } from "@codemirror/commands";
 import { useTheme } from "next-themes";
 
 const languageExtensions = {
+  // Official CodeMirror 6 packages only
   java: java(),
   cpp: cpp(),
   python: python(),
   php: php(),
+  javascript: javascript(),
+  typescript: javascript({ typescript: true }),
+  html: html(),
+  css: css(),
+  sql: sql(),
+  rust: rust(),
 };
 
 interface CodeEditorProps {
-  language: "java" | "cpp" | "python" | "php";
+  language: string; // Support any language key from languageExtensions
   code: string;
   onChange: (code: string) => void;
   editorViewRef?: React.MutableRefObject<EditorView | null>;
@@ -93,7 +105,7 @@ export default function CodeEditor({
         doc: code,
         extensions: [
           basicSetup,
-          languageExtensions[language],
+          languageExtensions[language as keyof typeof languageExtensions] || languageExtensions.python, // Fallback to Python
           foldGutter(),
           EditorView.lineWrapping,
           history(),

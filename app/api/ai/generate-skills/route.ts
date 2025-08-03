@@ -30,32 +30,43 @@ export async function POST(req: NextRequest) {
     const skillCount = count || 10;
     const type = skillType || 'all';
 
-    // Generate AI-powered skills
-    const prompt = `Generate ${skillCount} relevant skills for the following position:
+    // Generate AI-powered skills with improved prompt for concise, real-world skills
+    const prompt = `Generate ${skillCount} relevant, concise skills for the following position:
 
 Job Role: ${jobRole}
 ${industry ? `Industry: ${industry}` : ''}
 ${experienceLevel ? `Experience Level: ${experienceLevel}` : ''}
 ${skillType && skillType !== 'all' ? `Focus on: ${skillType} skills` : ''}
 
-Generate skills that are:
-1. Relevant to the job role and industry
-2. Appropriate for the experience level
-3. Mix of technical and soft skills (unless specific type requested)
-4. Include importance rating (1-5, where 5 is most critical)
-5. Include proficiency level expected (Beginner, Intermediate, Advanced, Expert)
-6. Include category (Technical, Soft, Industry-Specific, Tools, Certifications)
+IMPORTANT REQUIREMENTS:
+1. Skills must be SHORT (1-2 words maximum)
+2. Skills must be REAL-WORLD, commonly recognized skills
+3. Use proper names for technologies (e.g., "React", "Python", "AWS")
+4. Avoid generic phrases or long descriptions
+5. Focus on specific, actionable skills
 
-${skillType === 'technical' ? 'Focus only on technical/hard skills like programming languages, frameworks, tools, methodologies.' : ''}
-${skillType === 'soft' ? 'Focus only on soft/interpersonal skills like communication, leadership, teamwork, problem-solving.' : ''}
-${skillType === 'tools' ? 'Focus only on tools, software, platforms, and technologies.' : ''}
-${skillType === 'certifications' ? 'Focus only on relevant certifications and qualifications.' : ''}
+EXAMPLES OF GOOD SKILLS:
+- Technical: "React", "Python", "AWS", "Docker", "SQL", "Git", "Node.js"
+- Design: "Figma", "Photoshop", "UI Design", "UX Research"
+- Soft: "Leadership", "Communication", "Teamwork"
+- Tools: "Jira", "Slack", "Excel", "Tableau"
+
+EXAMPLES OF BAD SKILLS (DO NOT USE):
+- "Ability to work in fast-paced environments"
+- "Strong problem-solving and analytical thinking"
+- "Experience with modern development practices"
+- "Understanding of software development lifecycle"
+
+${skillType === 'technical' ? 'Focus only on specific technologies, programming languages, frameworks, and technical tools.' : ''}
+${skillType === 'soft' ? 'Focus only on concise soft skills like "Leadership", "Communication", "Teamwork".' : ''}
+${skillType === 'tools' ? 'Focus only on specific software, platforms, and tools with their proper names.' : ''}
+${skillType === 'certifications' ? 'Focus only on specific, well-known certifications.' : ''}
 
 Format as JSON with this structure:
 {
   "skills": [
     {
-      "name": "Skill name",
+      "name": "Skill name (1-2 words max)",
       "category": "Technical|Soft|Industry-Specific|Tools|Certifications",
       "importance": 5,
       "proficiency": "Advanced",
@@ -129,6 +140,10 @@ Provide exactly ${skillCount} skills. Calculate averageImportance based on the g
       });
     }
 
+    // Validate and filter skills
+    const validatedSkills = validateAndFilterSkills(result.skills);
+    result.skills = validatedSkills;
+
     // Calculate average importance if not provided
     if (result.skills.length > 0) {
       const avgImportance = result.skills.reduce((sum: number, skill: any) => sum + (skill.importance || 3), 0) / result.skills.length;
@@ -164,37 +179,111 @@ Provide exactly ${skillCount} skills. Calculate averageImportance based on the g
   }
 }
 
+// Validation function to filter out invalid skills
+function validateAndFilterSkills(skills: any[]): any[] {
+  const invalidPatterns = [
+    /ability to/i,
+    /experience with/i,
+    /understanding of/i,
+    /knowledge of/i,
+    /strong.*skills?/i,
+    /excellent/i,
+    /proficiency in/i,
+    /working with/i,
+    /familiarity with/i,
+    /background in/i
+  ];
+
+  const maxWordCount = 3; // Allow up to 3 words for compound skills like "UI Design"
+  const minLength = 2; // Minimum 2 characters
+  const maxLength = 25; // Maximum 25 characters
+
+  return skills.filter(skill => {
+    if (!skill || !skill.name || typeof skill.name !== 'string') {
+      return false;
+    }
+
+    const skillName = skill.name.trim();
+    
+    // Check length constraints
+    if (skillName.length < minLength || skillName.length > maxLength) {
+      return false;
+    }
+
+    // Check word count
+    const wordCount = skillName.split(/\s+/).length;
+    if (wordCount > maxWordCount) {
+      return false;
+    }
+
+    // Check for invalid patterns
+    const hasInvalidPattern = invalidPatterns.some(pattern => pattern.test(skillName));
+    if (hasInvalidPattern) {
+      return false;
+    }
+
+    // Check for overly generic terms
+    const genericTerms = [
+      'skills', 'abilities', 'experience', 'knowledge', 'understanding',
+      'proficiency', 'expertise', 'competency', 'capability'
+    ];
+    const lowerSkillName = skillName.toLowerCase();
+    const hasGenericTerm = genericTerms.some(term => lowerSkillName.includes(term));
+    if (hasGenericTerm) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 function generateFallbackSkills(jobRole: string, industry?: string, experienceLevel?: string, skillType?: string, count: number = 10) {
   const baseRole = jobRole.toLowerCase();
   const level = experienceLevel || 'Mid-level';
   const sector = industry || 'General';
   const type = skillType || 'all';
 
-  // Base skill pools
+  // Base skill pools with concise, real-world skills
   const technicalSkills = [
     {
-      name: "Problem Solving",
+      name: "Python",
       category: "Technical",
       importance: 5,
       proficiency: "Advanced",
-      description: "Ability to analyze complex problems and develop effective solutions",
-      keywords: ["analysis", "debugging", "troubleshooting"]
+      description: "Python programming language",
+      keywords: ["programming", "scripting", "development"]
     },
     {
-      name: "Data Analysis",
+      name: "JavaScript",
+      category: "Technical",
+      importance: 5,
+      proficiency: "Advanced",
+      description: "JavaScript programming language",
+      keywords: ["frontend", "backend", "web development"]
+    },
+    {
+      name: "React",
       category: "Technical",
       importance: 4,
       proficiency: "Intermediate",
-      description: "Interpreting and analyzing data to make informed decisions",
-      keywords: ["statistics", "metrics", "reporting"]
+      description: "React JavaScript library",
+      keywords: ["frontend", "ui", "components"]
     },
     {
-      name: "System Design",
+      name: "SQL",
       category: "Technical",
       importance: 4,
       proficiency: "Intermediate",
-      description: "Designing scalable and efficient systems and architectures",
-      keywords: ["architecture", "scalability", "design patterns"]
+      description: "Structured Query Language for databases",
+      keywords: ["database", "queries", "data"]
+    },
+    {
+      name: "AWS",
+      category: "Technical",
+      importance: 4,
+      proficiency: "Intermediate",
+      description: "Amazon Web Services cloud platform",
+      keywords: ["cloud", "infrastructure", "deployment"]
     }
   ];
 
@@ -204,7 +293,7 @@ function generateFallbackSkills(jobRole: string, industry?: string, experienceLe
       category: "Soft",
       importance: 5,
       proficiency: "Advanced",
-      description: "Clear verbal and written communication with team members and stakeholders",
+      description: "Effective verbal and written communication",
       keywords: ["presentation", "documentation", "collaboration"]
     },
     {
@@ -212,59 +301,75 @@ function generateFallbackSkills(jobRole: string, industry?: string, experienceLe
       category: "Soft",
       importance: 4,
       proficiency: "Advanced",
-      description: "Collaborating effectively with diverse teams",
+      description: "Collaborative work with teams",
       keywords: ["collaboration", "cooperation", "team dynamics"]
-    },
-    {
-      name: "Time Management",
-      category: "Soft",
-      importance: 4,
-      proficiency: "Intermediate",
-      description: "Prioritizing tasks and managing deadlines effectively",
-      keywords: ["prioritization", "scheduling", "productivity"]
     },
     {
       name: "Leadership",
       category: "Soft",
       importance: 4,
       proficiency: "Intermediate",
-      description: "Leading and motivating teams to achieve goals",
+      description: "Leading and motivating teams",
       keywords: ["mentoring", "guidance", "motivation"]
+    },
+    {
+      name: "Problem Solving",
+      category: "Soft",
+      importance: 5,
+      proficiency: "Advanced",
+      description: "Analytical thinking and solution development",
+      keywords: ["analysis", "critical thinking", "troubleshooting"]
     },
     {
       name: "Adaptability",
       category: "Soft",
       importance: 4,
       proficiency: "Intermediate",
-      description: "Adjusting to changing requirements and environments",
+      description: "Flexibility in changing environments",
       keywords: ["flexibility", "change management", "resilience"]
     }
   ];
 
   const toolSkills = [
     {
-      name: "Microsoft Office Suite",
+      name: "Excel",
       category: "Tools",
       importance: 3,
       proficiency: "Intermediate",
-      description: "Proficiency in Word, Excel, PowerPoint for documentation and presentations",
-      keywords: ["excel", "powerpoint", "word"]
+      description: "Microsoft Excel spreadsheet software",
+      keywords: ["spreadsheet", "data analysis", "formulas"]
     },
     {
-      name: "Project Management Tools",
+      name: "Jira",
       category: "Tools",
       importance: 3,
       proficiency: "Beginner",
-      description: "Using tools like Jira, Trello, or Asana for project tracking",
-      keywords: ["jira", "trello", "asana"]
+      description: "Project management and issue tracking",
+      keywords: ["project management", "tickets", "agile"]
     },
     {
-      name: "Version Control (Git)",
+      name: "Git",
       category: "Tools",
       importance: 4,
       proficiency: "Intermediate",
-      description: "Managing code versions and collaboration through Git",
-      keywords: ["git", "github", "version control"]
+      description: "Version control system",
+      keywords: ["version control", "github", "collaboration"]
+    },
+    {
+      name: "Docker",
+      category: "Tools",
+      importance: 4,
+      proficiency: "Intermediate",
+      description: "Containerization platform",
+      keywords: ["containers", "deployment", "devops"]
+    },
+    {
+      name: "Figma",
+      category: "Tools",
+      importance: 4,
+      proficiency: "Advanced",
+      description: "Design and prototyping tool",
+      keywords: ["design", "ui", "prototyping"]
     }
   ];
 
@@ -294,30 +399,38 @@ function generateFallbackSkills(jobRole: string, industry?: string, experienceLe
   if (baseRole.includes('developer') || baseRole.includes('engineer')) {
     technicalSkills.push(
       {
-        name: "Programming Languages",
+        name: "Node.js",
         category: "Technical",
-        importance: 5,
+        importance: 4,
         proficiency: "Advanced",
-        description: "Proficiency in relevant programming languages for the role",
-        keywords: ["coding", "programming", "development"]
+        description: "JavaScript runtime environment",
+        keywords: ["backend", "server", "javascript"]
       },
       {
-        name: "Software Architecture",
+        name: "TypeScript",
         category: "Technical",
         importance: 4,
         proficiency: "Intermediate",
-        description: "Understanding of software design patterns and architecture principles",
-        keywords: ["architecture", "design patterns", "software design"]
+        description: "Typed JavaScript superset",
+        keywords: ["javascript", "types", "development"]
+      },
+      {
+        name: "REST APIs",
+        category: "Technical",
+        importance: 4,
+        proficiency: "Advanced",
+        description: "RESTful web services",
+        keywords: ["api", "web services", "http"]
       }
     );
     toolSkills.push(
       {
-        name: "IDE/Code Editors",
+        name: "VS Code",
         category: "Tools",
         importance: 4,
         proficiency: "Advanced",
-        description: "Proficiency in development environments and code editors",
-        keywords: ["ide", "vscode", "development environment"]
+        description: "Visual Studio Code editor",
+        keywords: ["ide", "editor", "development"]
       }
     );
   }

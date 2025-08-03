@@ -159,23 +159,82 @@ export async function GET(request: NextRequest) {
                 const feedbackData = JSON.parse(historyRecords[0].feedback);
                 console.log(`Processing campaign interview ${interview.interviewId}. Parsed feedback:`, typeof feedbackData, feedbackData);
                 
-                // Handle different feedback structures
-                if (feedbackData.answers) {
-                  // If answers is an object with numeric keys, convert to array
-                  if (typeof feedbackData.answers === 'object' && !Array.isArray(feedbackData.answers)) {
-                    answers = Object.keys(feedbackData.answers)
-                      .sort((a, b) => Number(a) - Number(b))
-                      .map(key => feedbackData.answers[key]);
-                  } else {
-                    answers = Array.isArray(feedbackData.answers) ? feedbackData.answers : [];
-                  }
+                // Handle different feedback structures with detailed parsing
+                if (feedbackData.answers && Array.isArray(feedbackData.answers)) {
+                  // New structure with detailed answers array
+                  answers = feedbackData.answers.map((answer: any, index: number) => ({
+                    id: answer.id || (index + 1).toString(),
+                    question: answer.question || answer.questionText || `Question ${index + 1}`,
+                    userAnswer: answer.userAnswer || answer.selectedOption || answer.answer || answer.response || 'No answer provided',
+                    correctAnswer: answer.correctAnswer || answer.correctOption || undefined,
+                    isCorrect: answer.isCorrect !== undefined ? answer.isCorrect : undefined,
+                    rating: answer.rating || answer.score || undefined,
+                    feedback: answer.feedback || answer.aiAnalysis || undefined,
+                    language: answer.language || answer.programmingLanguage || undefined,
+                    type: answer.type || interview.interviewType || 'behavioral',
+                    timeSpent: answer.timeSpent || answer.timeTaken || undefined,
+                    scoringBreakdown: answer.scoringBreakdown || undefined,
+                    maxScore: answer.maxScore || 1
+                  }));
+                } else if (feedbackData.answers && typeof feedbackData.answers === 'object') {
+                  // Object format with numeric keys
+                  const keys = Object.keys(feedbackData.answers).sort((a, b) => Number(a) - Number(b));
+                  answers = keys.map((key, index) => {
+                    const answer = feedbackData.answers[key];
+                    return {
+                      id: key,
+                      question: answer.question || answer.questionText || `Question ${index + 1}`,
+                      userAnswer: answer.userAnswer || answer.selectedOption || answer.answer || answer.response || 'No answer provided',
+                      correctAnswer: answer.correctAnswer || answer.correctOption || undefined,
+                      isCorrect: answer.isCorrect !== undefined ? answer.isCorrect : undefined,
+                      rating: answer.rating || answer.score || undefined,
+                      feedback: answer.feedback || answer.aiAnalysis || undefined,
+                      language: answer.language || answer.programmingLanguage || undefined,
+                      type: answer.type || interview.interviewType || 'behavioral',
+                      timeSpent: answer.timeSpent || answer.timeTaken || undefined,
+                      scoringBreakdown: answer.scoringBreakdown || undefined,
+                      maxScore: answer.maxScore || 1
+                    };
+                  });
+                } else if (Array.isArray(feedbackData)) {
+                  // Direct array format
+                  answers = feedbackData.map((answer: any, index: number) => ({
+                    id: answer.id || (index + 1).toString(),
+                    question: answer.question || answer.questionText || `Question ${index + 1}`,
+                    userAnswer: answer.userAnswer || answer.selectedOption || answer.answer || answer.response || 'No answer provided',
+                    correctAnswer: answer.correctAnswer || answer.correctOption || undefined,
+                    isCorrect: answer.isCorrect !== undefined ? answer.isCorrect : undefined,
+                    rating: answer.rating || answer.score || undefined,
+                    feedback: answer.feedback || answer.aiAnalysis || undefined,
+                    language: answer.language || answer.programmingLanguage || undefined,
+                    type: answer.type || interview.interviewType || 'behavioral',
+                    timeSpent: answer.timeSpent || answer.timeTaken || undefined,
+                    scoringBreakdown: answer.scoringBreakdown || undefined,
+                    maxScore: answer.maxScore || 1
+                  }));
                 } else if (typeof feedbackData === 'object' && !feedbackData.answers) {
                   // Handle case where feedback is directly the answers object
                   const keys = Object.keys(feedbackData).filter(key => !isNaN(Number(key)));
                   if (keys.length > 0) {
                     answers = keys
                       .sort((a, b) => Number(a) - Number(b))
-                      .map(key => feedbackData[key]);
+                      .map((key, index) => {
+                        const answer = feedbackData[key];
+                        return {
+                          id: key,
+                          question: answer.question || answer.questionText || `Question ${index + 1}`,
+                          userAnswer: answer.userAnswer || answer.selectedOption || answer.answer || answer.response || 'No answer provided',
+                          correctAnswer: answer.correctAnswer || answer.correctOption || undefined,
+                          isCorrect: answer.isCorrect !== undefined ? answer.isCorrect : undefined,
+                          rating: answer.rating || answer.score || undefined,
+                          feedback: answer.feedback || answer.aiAnalysis || undefined,
+                          language: answer.language || answer.programmingLanguage || undefined,
+                          type: answer.type || interview.interviewType || 'behavioral',
+                          timeSpent: answer.timeSpent || answer.timeTaken || undefined,
+                          scoringBreakdown: answer.scoringBreakdown || undefined,
+                          maxScore: answer.maxScore || 1
+                        };
+                      });
                   } else {
                     answers = [];
                   }

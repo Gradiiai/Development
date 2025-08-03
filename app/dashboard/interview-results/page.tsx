@@ -123,6 +123,7 @@ interface InterviewResult {
     language?: string;
     type: "mcq" | "behavioral" | "coding";
     timeSpent?: number;
+    maxScore?: number;
     scoringBreakdown?: {
       syntax?: number;
       logic?: number;
@@ -1187,14 +1188,33 @@ export default function EnhancedInterviewResultsDashboard() {
                                                           {answer.userAnswer}
                                                         </p>
                                                       )}
-                                                      {answer.language && (
-                                                        <Badge
-                                                          variant="outline"
-                                                          className="mt-2 text-xs"
-                                                        >
-                                                          {answer.language}
-                                                        </Badge>
-                                                      )}
+                                                      <div className="flex gap-2 mt-2 flex-wrap">
+                                                        {answer.language && (
+                                                          <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                          >
+                                                            {answer.language}
+                                                          </Badge>
+                                                        )}
+                                                        {answer.timeSpent && (
+                                                          <Badge
+                                                            variant="secondary"
+                                                            className="text-xs"
+                                                          >
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            {answer.timeSpent}s
+                                                          </Badge>
+                                                        )}
+                                                        {answer.maxScore && (
+                                                          <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                          >
+                                                            Score: {answer.rating || 0}/{answer.maxScore}
+                                                          </Badge>
+                                                        )}
+                                                      </div>
                                                     </div>
                                                   </div>
 
@@ -1218,6 +1238,32 @@ export default function EnhancedInterviewResultsDashboard() {
                                                       <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded border">
                                                         {answer.feedback}
                                                       </p>
+                                                    </div>
+                                                  )}
+
+                                                  {answer.scoringBreakdown && (
+                                                    <div>
+                                                      <p className="text-sm font-medium text-gray-700 mb-2">
+                                                        Scoring Breakdown:
+                                                      </p>
+                                                      <div className="bg-blue-50 p-3 rounded border space-y-1">
+                                                        {formatScoringBreakdown(answer.scoringBreakdown, answer.type).map((item, idx) => (
+                                                          <div key={idx} className="flex justify-between items-center text-xs">
+                                                            <span className="text-gray-700">{item.label}:</span>
+                                                            <div className="flex items-center gap-2">
+                                                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                                                <div 
+                                                                  className="bg-blue-600 h-2 rounded-full" 
+                                                                  style={{ width: `${(item.value / item.max) * 100}%` }}
+                                                                ></div>
+                                                              </div>
+                                                              <span className="text-gray-600 font-medium min-w-[3rem]">
+                                                                {item.value.toFixed(1)}/{item.max}
+                                                              </span>
+                                                            </div>
+                                                          </div>
+                                                        ))}
+                                                      </div>
                                                     </div>
                                                   )}
                                                 </div>

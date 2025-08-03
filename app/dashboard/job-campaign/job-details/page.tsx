@@ -59,15 +59,9 @@ const jobDetailsSchema = z.object({
   requirements: z.string().optional(),
   benefits: z.string().optional(),
   skills: z.string().optional(),
-applicationDeadline: z.string().refine(val => !!val && val !== "0000-00-00" && val.trim() !== "", { message: "Application deadline is required" }),
-targetHireDate: z.string().refine(val => !!val && val !== "0000-00-00" && !val.startsWith("0001-") && val.trim() !== "", { message: "Target hire date is required" }),}).refine((data) => {
-  if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Minimum salary cannot be greater than maximum salary",
-  path: ["salaryMax"]
+  campaignType: z.enum(['permanent', 'specific'], { message: "Campaign type is required" }),
+  applicationDeadline: z.string().optional(),
+  targetHireDate: z.string().optional(),
 }).refine((data) => {
   if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
     return false;
@@ -78,10 +72,33 @@ targetHireDate: z.string().refine(val => !!val && val !== "0000-00-00" && !val.s
   path: ["salaryMax"]
 })
 .refine((data) => {
-  const appDate = new Date(data.applicationDeadline);
-  const targetDate = new Date(data.targetHireDate);
-  if (appDate.toString() !== 'Invalid Date' && targetDate.toString() !== 'Invalid Date') {
-    return targetDate >= appDate;
+  // For specific campaigns, require application deadline
+  if (data.campaignType === 'specific' && (!data.applicationDeadline || data.applicationDeadline.trim() === "" || data.applicationDeadline === "0000-00-00")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Application deadline is required for specific campaigns",
+  path: ["applicationDeadline"]
+})
+.refine((data) => {
+  // For specific campaigns, require target hire date
+  if (data.campaignType === 'specific' && (!data.targetHireDate || data.targetHireDate.trim() === "" || data.targetHireDate === "0000-00-00" || data.targetHireDate.startsWith("0001-"))) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Target hire date is required for specific campaigns",
+  path: ["targetHireDate"]
+})
+.refine((data) => {
+  // Only validate date order if both dates are provided and valid
+  if (data.applicationDeadline && data.targetHireDate && data.applicationDeadline.trim() !== "" && data.targetHireDate.trim() !== "") {
+    const appDate = new Date(data.applicationDeadline);
+    const targetDate = new Date(data.targetHireDate);
+    if (appDate.toString() !== 'Invalid Date' && targetDate.toString() !== 'Invalid Date') {
+      return targetDate >= appDate;
+    }
   }
   return true;
 }, {
@@ -142,7 +159,7 @@ export default function JobDetailsStep() {
   const [companyName, setCompanyName] = useState('');
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [loadingCompany, setLoadingCompany] = useState(false);
-  const [skillTemplates, setSkillTemplates] = useState([]);
+  const [skillTemplates, setSkillTemplates] = useState<any[]>([]);
   const [selectedSkillTemplate, setSelectedSkillTemplate] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -196,6 +213,7 @@ function formatDateInput(dateString: string | null): string {
           (Array.isArray(state.jobDetails.jobDuties) ? state.jobDetails.jobDuties.join('\n').trim() : (state.jobDetails.jobDuties as string).trim()) : undefined,
         requirements: state.jobDetails.requirements ? 
           (Array.isArray(state.jobDetails.requirements) ? state.jobDetails.requirements.join('\n').trim() : (state.jobDetails.requirements as string).trim()) : undefined,
+        campaignType: state.jobDetails.campaignType || 'specific',
         applicationDeadline: (state.jobDetails.applicationDeadline || '').trim(),
         targetHireDate: (state.jobDetails.targetHireDate || '').trim(),
       };
@@ -238,6 +256,7 @@ function formatDateInput(dateString: string | null): string {
           (Array.isArray(state.jobDetails.jobDuties) ? state.jobDetails.jobDuties.join('\n').trim() : (state.jobDetails.jobDuties as string).trim()) : undefined,
         requirements: state.jobDetails.requirements ? 
           (Array.isArray(state.jobDetails.requirements) ? state.jobDetails.requirements.join('\n').trim() : (state.jobDetails.requirements as string).trim()) : undefined,
+        campaignType: state.jobDetails.campaignType || 'specific',
         applicationDeadline: (state.jobDetails.applicationDeadline || '').trim(),
         targetHireDate: (state.jobDetails.targetHireDate || '').trim(),
       };
@@ -409,6 +428,22 @@ function formatDateInput(dateString: string | null): string {
     }
   };
 
+  // Fetch skill templates
+  const fetchSkillTemplates = async () => {
+    try {
+      const response = await fetch('/api/content/templates?type=skill');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSkillTemplates(data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching skill templates:', error);
+      toast.error('Failed to load skill templates');
+    }
+  };
+
   // Fetch company information
   const fetchCompanyInfo = async () => {
     if (!session?.user?.companyId) return;
@@ -532,6 +567,7 @@ function formatDateInput(dateString: string | null): string {
   // Load templates and company info on mount
   useEffect(() => {
     fetchJobDescriptionTemplates();
+    fetchSkillTemplates();
     fetchCompanyInfo();
   }, [session?.user?.companyId]);
 
@@ -843,37 +879,79 @@ function formatDateInput(dateString: string | null): string {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Campaign Type Selection */}
+              <div className="space-y-4">
+                <h4 className="text-md font-medium text-gray-900">Campaign Type</h4>
                 <div className="space-y-2">
-                  <Label>Application Deadline</Label>
-                  <Input
-                    type="date"
-                    value={formatDateInput(state.jobDetails.applicationDeadline ?? null)}
-                    onChange={e => handleInputChange('applicationDeadline', e.target.value)}
-                  />
-                  {validationErrors.applicationDeadline && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Info className="w-4 h-4 mr-1 text-red-500" />
-                      <span className="text-red-500 text-xs font-medium">{validationErrors.applicationDeadline}</span>
-                    </div>
+                  <Label htmlFor="campaignType" className="text-sm font-medium">Campaign Type *</Label>
+                  <Select value={state.jobDetails.campaignType || 'specific'} onValueChange={(value) => handleInputChange('campaignType', value)}>
+                    <SelectTrigger className={`h-11 ${
+                      validationErrors.campaignType 
+                        ? 'border-red-300 focus:ring-red-500' 
+                        : ''
+                    }`}>
+                      <SelectValue placeholder="Select campaign type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Specific Campaign - For a particular job role with deadline</SelectItem>
+                      <SelectItem value="permanent">Permanent Campaign - Reusable for multiple hires</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {validationErrors.campaignType && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                      <Info className="w-4 h-4 mr-1" />
+                      {validationErrors.campaignType}
+                    </p>
                   )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="targetHireDate" className="text-sm font-medium">Target Hire Date</Label>
-                  <Input
-                    name="targetHireDate"
-                    type="date"
-                    value={state.jobDetails.targetHireDate || ""}
-                    onChange={e => handleInputChange('targetHireDate', e.target.value)}
-                  />
-                  {validationErrors.targetHireDate && (
-  <div className="text-red-600 text-sm mt-1 flex items-center gap-1">
-    <AlertCircle className="w-4 h-4 text-red-600" />
-    {validationErrors.targetHireDate}
-  </div>
-)}
+                  <p className="text-sm text-gray-500">
+                    {state.jobDetails.campaignType === 'permanent' 
+                      ? 'Permanent campaigns can be reused for multiple hires over time. Date fields are optional.'
+                      : 'Specific campaigns are tied to a particular job role with defined deadlines.'
+                    }
+                  </p>
                 </div>
               </div>
+
+              {/* Date Fields - Only show for specific campaigns */}
+              {state.jobDetails.campaignType === 'specific' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>
+                      Application Deadline
+                      <span className="text-red-500 ml-1">*</span>
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formatDateInput(state.jobDetails.applicationDeadline ?? null)}
+                      onChange={e => handleInputChange('applicationDeadline', e.target.value)}
+                    />
+                    {validationErrors.applicationDeadline && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Info className="w-4 h-4 mr-1 text-red-500" />
+                        <span className="text-red-500 text-xs font-medium">{validationErrors.applicationDeadline}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="targetHireDate" className="text-sm font-medium">
+                      Target Hire Date
+                      <span className="text-red-500 ml-1">*</span>
+                    </Label>
+                    <Input
+                      name="targetHireDate"
+                      type="date"
+                      value={state.jobDetails.targetHireDate || ""}
+                      onChange={e => handleInputChange('targetHireDate', e.target.value)}
+                    />
+                    {validationErrors.targetHireDate && (
+                      <div className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        {validationErrors.targetHireDate}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -1129,31 +1207,112 @@ function formatDateInput(dateString: string | null): string {
                     <div className="space-y-2">
                       <Select value={selectedSkillTemplate} onValueChange={(value) => {
                         setSelectedSkillTemplate(value);
-                        // Load skills from template if needed
+                        // Load skills from selected template
+                         if (value !== 'custom') {
+                           const template = skillTemplates.find((t) => t.id === value);
+                           console.log('Selected template:', template);
+                           
+                           if (template && template.content) {
+                             let templateSkills: string[] = [];
+                             
+                             // Handle different skill data structures
+                             if (Array.isArray(template.content)) {
+                               // If content is directly an array of skill objects
+                               const rawSkills = template.content.map((skill: any) => skill.name || skill);
+                               console.log('Raw skills from array:', rawSkills);
+                               templateSkills = rawSkills.filter((name: any) => {
+                                 const isValid = name && typeof name === 'string' && name.trim().length > 0 && name.length <= 50;
+                                 if (!isValid) console.log('Filtered out skill:', name, 'Length:', name?.length);
+                                 return isValid;
+                               });
+                             } else if (template.content.skillsToAssess && Array.isArray(template.content.skillsToAssess)) {
+                               // If content has skillsToAssess property (AI generated)
+                               const rawSkills = template.content.skillsToAssess.map((skill: any) => skill.name || skill);
+                               console.log('Raw skills from skillsToAssess:', rawSkills);
+                               templateSkills = rawSkills.filter((name: any) => {
+                                 const isValid = name && typeof name === 'string' && name.trim().length > 0 && name.length <= 50;
+                                 if (!isValid) console.log('Filtered out skill:', name, 'Length:', name?.length);
+                                 return isValid;
+                               });
+                             } else if (typeof template.content === 'object' && template.content.skills) {
+                               // If content has skills property
+                               const rawSkills = template.content.skills.map((skill: any) => skill.name || skill);
+                               console.log('Raw skills from skills property:', rawSkills);
+                               templateSkills = rawSkills.filter((name: any) => {
+                                 const isValid = name && typeof name === 'string' && name.trim().length > 0 && name.length <= 50;
+                                 if (!isValid) console.log('Filtered out skill:', name, 'Length:', name?.length);
+                                 return isValid;
+                               });
+                             }
+                             
+                             console.log('Extracted skills:', templateSkills);
+                             
+                             if (templateSkills.length > 0) {
+                               const currentSkills = state.jobDetails.skills || [];
+                               const mergedSkills = [...new Set([...currentSkills, ...templateSkills])];
+                               const newSkillsCount = mergedSkills.length - currentSkills.length;
+                               
+                               console.log('Current skills:', currentSkills);
+                               console.log('Template skills:', templateSkills);
+                               console.log('Merged skills:', mergedSkills);
+                               console.log('New skills added:', newSkillsCount);
+                               
+                               handleInputChange('skills', mergedSkills);
+                               toast.success(`Added ${newSkillsCount} new skills from template (${templateSkills.length} total in template)`);
+                             } else {
+                               toast.error('No valid skills found in the selected template');
+                             }
+                           }
+                         }
                       }}>
                         <SelectTrigger className="w-full h-14">
                           <SelectValue placeholder="Choose skill template" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="frontend">Frontend Developer</SelectItem>
-                          <SelectItem value="backend">Backend Developer</SelectItem>
-                          <SelectItem value="fullstack">Full Stack Developer</SelectItem>
+                          {skillTemplates.map((template) => (
+                             <SelectItem key={template.id} value={template.id}>
+                               {template.name}
+                             </SelectItem>
+                           ))}
                           <SelectItem value="custom">Custom Skills</SelectItem>
                         </SelectContent>
                       </Select>
                       <Input
-                        placeholder="Add a skill and press Enter"
+                        placeholder="Add a skill and press Enter (e.g., React, Python, Figma)"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             const value = e.currentTarget.value.trim();
+                            
+                            // Validate skill input
                             if (value && !(state.jobDetails.skills || []).includes(value)) {
+                              // Check if skill is valid (short, no generic terms)
+                              if (value.length > 20) {
+                                toast.error('Skill name must be 20 characters or less');
+                                return;
+                              }
+                              
+                              if (value.split(' ').length > 3) {
+                                toast.error('Skill should be 1-3 words maximum');
+                                return;
+                              }
+                              
+                              // Check for invalid patterns
+                              const invalidPatterns = ['ability to', 'experience with', 'knowledge of', 'understanding of'];
+                              const genericTerms = ['skills', 'knowledge', 'experience', 'ability'];
+                              
+                              if (invalidPatterns.some(pattern => value.toLowerCase().includes(pattern)) ||
+                                  genericTerms.some(term => value.toLowerCase() === term)) {
+                                toast.error('Please enter specific skill names (e.g., React, Python, Figma)');
+                                return;
+                              }
+                              
                               handleInputChange('skills', [...(state.jobDetails.skills || []), value]);
                               e.currentTarget.value = '';
                             }
                           }
                         }}
-  className="w-full h-14"
+                        className="w-full h-14"
                       />
                       <div className="flex flex-wrap gap-2 min-h-[60px] p-2 border rounded-md bg-gray-50">
                         {(state.jobDetails.skills || []).map((skill, index) => (

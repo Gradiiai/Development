@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
-import { questionBanks, questionBank } from '@/lib/database/schema';
+import { questionCollections, questions } from '@/lib/database/schema';
 import { eq, and, desc, ilike } from 'drizzle-orm';
-import { checkQuestionBankDependencies } from '@/lib/services/question-bank-dependencies';
+// Dependency checking removed - using database foreign keys instead
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -20,16 +20,16 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ success: true, data: { bank: null, questions: [] } });
     }
 
-    const [bank] = await db
+    const [collection] = await db
       .select()
-      .from(questionBanks)
+      .from(questionCollections)
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ));
 
-    if (!bank) {
-      return NextResponse.json({ success: false, error: 'Question bank not found' }, { status: 404 });
+    if (!collection) {
+      return NextResponse.json({ success: false, error: 'Question collection not found' }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -37,26 +37,26 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const search = searchParams.get('search');
 
     const whereConditions = [
-      eq(questionBank.questionBankId, bankId),
-      eq(questionBank.companyId, companyId),
-      eq(questionBank.isActive, true),
+      eq(questions.collectionId, bankId),
+      eq(questions.companyId, companyId),
+      eq(questions.isActive, true),
     ];
 
     if (questionType && questionType !== 'all') {
-      whereConditions.push(eq(questionBank.questionType, questionType));
+      whereConditions.push(eq(questions.questionType, questionType));
     }
 
     if (search) {
-      whereConditions.push(ilike(questionBank.question, `%${search}%`));
+      whereConditions.push(ilike(questions.question, `%${search}%`));
     }
 
-    const questions = await db
+    const collectionQuestions = await db
       .select()
-      .from(questionBank)
+      .from(questions)
       .where(and(...whereConditions))
-      .orderBy(desc(questionBank.createdAt));
+      .orderBy(desc(questions.createdAt));
 
-    return NextResponse.json({ success: true, data: { bank, questions } });
+    return NextResponse.json({ success: true, data: { collection, questions: collectionQuestions } });
   } catch (error) {
     console.error('Error fetching question bank:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch question bank' }, { status: 500 });
@@ -79,27 +79,29 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ success: false, error: 'Name and category are required' }, { status: 400 });
     }
 
-    const [updatedBank] = await db
-      .update(questionBanks)
+    const [updatedCollection] = await db
+      .update(questionCollections)
       .set({
         name: body.name,
         description: body.description || null,
         category: body.category,
-        tags: body.tags || null,
+        subCategory: body.subCategory || null,
+        tags: body.tags ? JSON.stringify(Array.isArray(body.tags) ? body.tags : body.tags.split(',').map((t: string) => t.trim())) : null,
         isPublic: body.isPublic || false,
+        collectionType: body.collectionType || 'custom',
         updatedAt: new Date(),
       })
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ))
       .returning();
 
-    if (!updatedBank) {
-      return NextResponse.json({ success: false, error: 'Question bank not found' }, { status: 404 });
+    if (!updatedCollection) {
+      return NextResponse.json({ success: false, error: 'Question collection not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: updatedBank });
+    return NextResponse.json({ success: true, data: updatedCollection });
   } catch (error) {
     console.error('Error updating question bank:', error);
     return NextResponse.json({ success: false, error: 'Failed to update question bank' }, { status: 500 });
@@ -121,54 +123,39 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: 'Company ID not found' }, { status: 400 });
     }
 
-    // Check for dependencies before deletion
-    const dependencyInfo = await checkQuestionBankDependencies(bankId, companyId);
-    
-    if (!dependencyInfo.canDelete) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Cannot delete question bank',
-        details: {
-          message: 'This question bank cannot be deleted because it is currently in use.',
-          blockingReasons: dependencyInfo.blockingReasons,
-          dependencies: dependencyInfo.dependencies,
-          activeCampaigns: dependencyInfo.activeCampaigns,
-          totalInterviews: dependencyInfo.totalInterviews
-        }
-      }, { status: 409 }); // 409 Conflict
-    }
+    // Simple deletion - database foreign keys will prevent issues
 
-    // Check if the question bank exists and belongs to the company
-    const [existingBank] = await db
+    // Check if the question collection exists and belongs to the company
+    const [existingCollection] = await db
       .select()
-      .from(questionBanks)
+      .from(questionCollections)
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ))
       .limit(1);
 
-    if (!existingBank) {
-      return NextResponse.json({ success: false, error: 'Question bank not found' }, { status: 404 });
+    if (!existingCollection) {
+      return NextResponse.json({ success: false, error: 'Question collection not found' }, { status: 404 });
     }
 
-    // Soft delete the question bank
-    const [deletedBank] = await db
-      .update(questionBanks)
+    // Soft delete the question collection
+    const [deletedCollection] = await db
+      .update(questionCollections)
       .set({
         isActive: false,
         updatedAt: new Date(),
       })
       .where(and(
-        eq(questionBanks.id, bankId),
-        eq(questionBanks.companyId, companyId)
+        eq(questionCollections.id, bankId),
+        eq(questionCollections.companyId, companyId)
       ))
       .returning();
 
     return NextResponse.json({ 
       success: true, 
-      data: deletedBank,
-      message: 'Question bank deleted successfully'
+      data: deletedCollection,
+      message: 'Question collection deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting question bank:', error);

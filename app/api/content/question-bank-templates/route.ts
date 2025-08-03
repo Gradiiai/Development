@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/database/connection';
-import { questionBankTemplates, questionBanks, questionBank } from '@/lib/database/schema';
+import { questionCollections, questions } from '@/lib/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { PREDEFINED_TEMPLATES } from '@/lib/constants/question-bank';
 
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     // Get predefined templates from database
     const templates = await db
       .select()
-      .from(questionBankTemplates)
-      .where(eq(questionBankTemplates.isActive, true));
+      .from(questionCollections)
+      .where(eq(questionCollections.isActive, true));
 
     // If no templates in database, return predefined ones
     if (templates.length === 0) {
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
       // Query database for UUID-based template
       template = await db
         .select()
-        .from(questionBankTemplates)
-        .where(eq(questionBankTemplates.id, templateId))
+        .from(questionCollections)
+        .where(eq(questionCollections.id, templateId))
         .limit(1);
     } else {
       // Look for predefined template by name
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (predefinedTemplate) {
       // Create question bank from predefined template
       const [newBank] = await db
-        .insert(questionBanks)
+        .insert(questionCollections)
         .values({
           companyId: session.user.companyId,
           createdBy: session.user.id,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
           tags: predefinedTemplate.targetRoles.join(', '),
           isActive: true,
           isPublic: false,
-          isTemplate: false,
+          collectionType: 'system_template',
           questionCount: 0,
           usageCount: 0,
         })
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       // Create from database template
       const templateData = template[0];
       const [newBank] = await db
-        .insert(questionBanks)
+        .insert(questionCollections)
         .values({
           companyId: session.user.companyId,
           createdBy: session.user.id,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           tags: templateData.targetRoles || '',
           isActive: true,
           isPublic: false,
-          isTemplate: false,
+          collectionType: 'system_template',
           questionCount: 0,
           usageCount: 0,
         })

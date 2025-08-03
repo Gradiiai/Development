@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       competencies,
       jobDescriptionTemplateId,
       skillTemplateId,
-      autoScheduleConfig,
+
       status
     } = body;
 
@@ -195,7 +195,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       isHybrid: Boolean(isHybrid),
       jobDescriptionTemplateId: jobDescriptionTemplateId || undefined,
       skillTemplateId: skillTemplateId || undefined,
-      autoScheduleConfig: autoScheduleConfig || undefined,
+      
       companyId
     };
 

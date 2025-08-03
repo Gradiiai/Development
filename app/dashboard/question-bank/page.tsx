@@ -71,14 +71,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/shared/tabs';
 import { 
   QUESTION_CATEGORIES, 
-  QUESTION_TYPES, 
+  INTERVIEW_TYPES, 
   DIFFICULTY_LEVELS,
   CATEGORY_INFO,
   APTITUDE_SUBCATEGORIES,
   TECHNICAL_SUBCATEGORIES,
-  BEHAVIORAL_SUBCATEGORIES,
+  SKILLS_SUBCATEGORIES,
   SCREENING_SUBCATEGORIES,
-  SOFT_SKILLS_SUBCATEGORIES
+  COMMUNICATION_SUBCATEGORIES
 } from '@/lib/constants/question-bank';
 
 // Define the Question type
@@ -112,8 +112,8 @@ interface Question {
   revisionNumber: number;
 }
 
-// Define the QuestionBank type
-interface QuestionBank {
+// Define the QuestionCollection type
+interface QuestionCollection {
   id: string;
   name: string;
   description?: string;
@@ -131,41 +131,41 @@ interface QuestionBank {
 }
 
 // Question Bank Template type
-interface QuestionBankTemplate {
+interface QuestionCollectionTemplate {
   id?: string;
   name: string;
   description: string;
   category: string;
   subCategory?: string;
-  questionTypes: string[];
+  interviewTypes: string[];
   targetRoles: string[];
   difficultyLevels: string[];
   estimatedQuestions: number;
 }
 
-export default function QuestionBankPage() {
+export default function QuestionCollectionPage() {
   const { data: session } = useSession();
   const router = useRouter();
   
   // Main state
-  const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
+  const [questionCollections, setQuestionCollections] = useState<QuestionCollection[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   
   // View state
-  const [currentView, setCurrentView] = useState<'banks' | 'questions'>('banks');
-  const [selectedBank, setSelectedBank] = useState<QuestionBank | null>(null);
+  const [currentView, setCurrentView] = useState<'collections' | 'questions'>('collections');
+  const [selectedCollection, setSelectedCollection] = useState<QuestionCollection | null>(null);
   
   // Dialog states
-  const [isBankDialogOpen, setIsBankDialogOpen] = useState(false);
+  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 const [progress, setProgress] = useState(0);
 const[isGenerate, setIsGenerate] = useState(false);
-  // Question Bank form state
-  const [bankFormData, setBankFormData] = useState({
+  // Question Collection form state
+  const [collectionFormData, setCollectionFormData] = useState({
     name: '',
     description: '',
     category: '',
@@ -173,17 +173,18 @@ const[isGenerate, setIsGenerate] = useState(false);
     tags: '',
     isPublic: false,
     isTemplate: false,
+    collectionType: 'custom',
   });
   
   // Templates state
-  const [templates, setTemplates] = useState<QuestionBankTemplate[]>([]);
+  const [templates, setTemplates] = useState<QuestionCollectionTemplate[]>([]);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<QuestionBankTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<QuestionCollectionTemplate | null>(null);
   
   // Dependency checking state
   const [dependencyInfo, setDependencyInfo] = useState<any>(null);
   const [showDependencyDialog, setShowDependencyDialog] = useState(false);
-  const [bankToDelete, setBankToDelete] = useState<QuestionBank | null>(null);
+  const [collectionToDelete, setCollectionToDelete] = useState<QuestionCollection | null>(null);
   
   // Enhanced filters
   const [bankFilters, setBankFilters] = useState({
@@ -228,38 +229,38 @@ const[isGenerate, setIsGenerate] = useState(false);
 
   useEffect(() => {
     if (!session) return;
-    if (currentView === 'banks') {
-      fetchQuestionBanks();
+    if (currentView === 'collections') {
+      fetchQuestionCollections();
     }
   }, [session, currentView]);
 
   useEffect(() => {
-    if (selectedBank && currentView === 'questions') {
+    if (selectedCollection && currentView === 'questions') {
       fetchQuestions();
     }
-  }, [selectedBank, currentView, questionFilters]);
+  }, [selectedCollection, currentView, questionFilters]);
 
-  const fetchQuestionBanks = async () => {
+  const fetchQuestionCollections = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/content/questions/banks');
       const data = await response.json();
 
       if (data.success) {
-        setQuestionBanks(data.data);
+        setQuestionCollections(data.data);
       } else {
-        toast.error(data.error || 'Failed to fetch question banks');
+        toast.error(data.error || 'Failed to fetch question collections');
       }
     } catch (error) {
-      console.error('Error fetching question banks:', error);
-      toast.error('Failed to fetch question banks');
+      console.error('Error fetching question collections:', error);
+      toast.error('Failed to fetch question collections');
     } finally {
       setLoading(false);
     }
   };
 
   const fetchQuestions = async () => {
-    if (!selectedBank) return;
+    if (!selectedCollection) return;
     
     setQuestionsLoading(true);
     try {
@@ -271,7 +272,7 @@ const[isGenerate, setIsGenerate] = useState(false);
         queryParams.append('search', questionFilters.search);
       }
 
-      const response = await fetch(`/api/content/questions/banks/${selectedBank.id}?${queryParams.toString()}`);
+      const response = await fetch(`/api/content/questions/banks/${selectedCollection.id}?${queryParams.toString()}`);
       const data = await response.json();
 
       if (data.success) {
@@ -287,23 +288,23 @@ const[isGenerate, setIsGenerate] = useState(false);
     }
   };
 
-  const handleCreateQuestionBank = async () => {
+  const handleCreateQuestionCollection = async () => {
     try {
       const response = await fetch('/api/content/questions/banks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bankFormData),
+        body: JSON.stringify(collectionFormData),
       });
 
       const data = await response.json();
 
       if (data.success) {
         toast.success('Question bank created successfully');
-        setIsBankDialogOpen(false);
+        setIsCollectionDialogOpen(false);
         resetBankForm();
-        fetchQuestionBanks();
+        fetchQuestionCollections();
       } else {
         toast.error(data.error || 'Failed to create question bank');
       }
@@ -314,7 +315,7 @@ const[isGenerate, setIsGenerate] = useState(false);
   };
 
   const handleCreateQuestion = async () => {
-    if (!selectedBank) return;
+    if (!selectedCollection) return;
     
     try {
       const response = await fetch('/api/content/questions', {
@@ -324,7 +325,7 @@ const[isGenerate, setIsGenerate] = useState(false);
         },
         body: JSON.stringify({
           ...questionFormData,
-          questionBankId: selectedBank.id,
+          collectionId: selectedCollection.id,
         }),
       });
 
@@ -394,7 +395,7 @@ const[isGenerate, setIsGenerate] = useState(false);
       toast.error('Failed to delete question');
     }
   };
-  const checkDependenciesAndDelete = async (bank: QuestionBank) => {
+  const checkDependenciesAndDelete = async (bank: QuestionCollection) => {
     try {
       // First check dependencies
       const response = await fetch(`/api/content/question-banks/${bank.id}/dependencies`);
@@ -402,7 +403,7 @@ const[isGenerate, setIsGenerate] = useState(false);
 
       if (data.success) {
         setDependencyInfo(data.data);
-        setBankToDelete(bank);
+        setCollectionToDelete(bank);
         setShowDependencyDialog(true);
       } else {
         toast.error('Failed to check dependencies');
@@ -413,11 +414,11 @@ const[isGenerate, setIsGenerate] = useState(false);
     }
   };
 
-  const handleDeleteQuestionBank = async () => {
-    if (!bankToDelete) return;
+  const handleDeleteQuestionCollection = async () => {
+    if (!collectionToDelete) return;
     
     try {
-      const response = await fetch(`/api/content/questions/banks/${bankToDelete.id}`, {
+      const response = await fetch(`/api/content/questions/banks/${collectionToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -426,9 +427,9 @@ const[isGenerate, setIsGenerate] = useState(false);
       if (data.success) {
         toast.success('Question bank deleted successfully');
         setShowDependencyDialog(false);
-        setBankToDelete(null);
+        setCollectionToDelete(null);
         setDependencyInfo(null);
-        fetchQuestionBanks();
+        fetchQuestionCollections();
       } else {
         if (response.status === 409) {
           // Conflict - show detailed error information
@@ -458,7 +459,7 @@ const[isGenerate, setIsGenerate] = useState(false);
   };
 
   // Function to create question bank from template
- const createFromTemplate = async (template: QuestionBankTemplate, customName?: string, customDescription?: string) => {
+ const createFromTemplate = async (template: QuestionCollectionTemplate, customName?: string, customDescription?: string) => {
   try {
     const response = await fetch('/api/content/question-bank-templates', {
       method: 'POST',
@@ -476,12 +477,12 @@ const[isGenerate, setIsGenerate] = useState(false);
       toast.success(data.message || 'Question bank created from template');
       setShowTemplateDialog(false);
       setSelectedTemplate(null);
-      fetchQuestionBanks();
+      fetchQuestionCollections();
 
       if (data.data?.id) {
         const questionBankId = data.data.id;
 
-        for (const type of template.questionTypes) {
+        for (const type of template.interviewTypes) {
           let endpoint = '';
           switch (type) {
             case 'coding':
@@ -523,7 +524,7 @@ const[isGenerate, setIsGenerate] = useState(false);
                   expectedAnswer: q.explanation,
                   category: template.name || 'Technical',
                   difficultyLevel: q.difficulty || 'medium',
-                  questionBankId: questionBankId,
+                  collectionId: questionBankId,
                 };
               } else if (type === 'mcq') {
                 return {
@@ -532,7 +533,7 @@ const[isGenerate, setIsGenerate] = useState(false);
                   expectedAnswer: q.correctAnswer,
                   category: template.name || 'Technical',
                   difficultyLevel: q.difficulty || 'medium',
-                  questionBankId: questionBankId,
+                  collectionId: questionBankId,
                 };
               } else if (type === 'behavioral') {
                 return {
@@ -541,7 +542,7 @@ const[isGenerate, setIsGenerate] = useState(false);
                   expectedAnswer: q.purpose,
                   category: template.name || 'Behavioral',
                   difficultyLevel: 'medium',
-                  questionBankId: questionBankId,
+                  collectionId: questionBankId,
                 };
               }
             });
@@ -569,7 +570,7 @@ const[isGenerate, setIsGenerate] = useState(false);
   }
 };
   const handleGenerateQuestions = async () => {
-    if (!selectedBank) return;
+    if (!selectedCollection) return;
     
     setIsGenerate(true);
     try {
@@ -596,7 +597,7 @@ const[isGenerate, setIsGenerate] = useState(false);
 
       // Prepare form data
       const formData = new FormData();
-      formData.append('topic', aiFormData.topic || selectedBank?.name || 'General');
+      formData.append('topic', aiFormData.topic || selectedCollection?.name || 'General');
       formData.append('totalQuestions', String(aiFormData.count));
       formData.append('jobDescription', aiFormData.jobDescription || '');
       formData.append('difficulty', aiFormData.difficulty || 'medium');
@@ -644,7 +645,7 @@ if (response.ok) {
               expectedAnswer: q.explanation,
               category: aiFormData.category || 'Technical',
               difficultyLevel: q.difficulty || 'medium',
-              questionBankId: selectedBank.id
+              collectionId: selectedCollection.id
             })));
           }
           if (aiQuestions.behavioral) {
@@ -654,7 +655,7 @@ if (response.ok) {
               expectedAnswer: q.purpose,
               category: aiFormData.category || 'Behavioral',
               difficultyLevel: 'medium',
-              questionBankId: selectedBank.id
+              collectionId: selectedCollection.id
             })));
           }
           if (aiQuestions.mcq) {
@@ -662,9 +663,9 @@ if (response.ok) {
               questionType: 'mcq',
               question: q.question,
               expectedAnswer: q.correctAnswer,
-              category: aiFormData.category || 'Technical',
+              category: aiFormData.category || 'Mcq',
               difficultyLevel: q.difficulty || 'medium',
-              questionBankId: selectedBank.id
+              collectionId: selectedCollection.id
             })));
           }
         } else {
@@ -675,7 +676,7 @@ if (response.ok) {
             expectedAnswer: q.explanation || q.purpose || q.correctAnswer,
             category: aiFormData.category || 'General',
             difficultyLevel: q.difficulty || 'medium',
-            questionBankId: selectedBank.id
+            collectionId: selectedCollection.id
           }));
         }
 
@@ -704,7 +705,7 @@ if (response.ok) {
   };
 
   const resetBankForm = () => {
-    setBankFormData({
+    setCollectionFormData({
       name: '',
       description: '',
       category: '',
@@ -712,6 +713,7 @@ if (response.ok) {
       tags: '',
       isPublic: false,
       isTemplate: false,
+      collectionType: 'custom',
     });
   };
 
@@ -743,14 +745,14 @@ if (response.ok) {
     setIsQuestionDialogOpen(true);
   };
 
-  const openBankView = (bank: QuestionBank) => {
-    setSelectedBank(bank);
+  const openCollectionView = (bank: QuestionCollection) => {
+    setSelectedCollection(bank);
     setCurrentView('questions');
   };
 
   const backToBanks = () => {
-    setCurrentView('banks');
-    setSelectedBank(null);
+    setCurrentView('collections');
+    setSelectedCollection(null);
     setQuestions([]);
   };
 
@@ -803,7 +805,7 @@ if (response.ok) {
               )}
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
-                  {currentView === "banks" ? (
+                  {currentView === "collections" ? (
                     <div className="p-3 bg-emerald-500 rounded-xl">
                       <BookOpen className="h-6 w-6 text-white" />
                     </div>
@@ -813,22 +815,22 @@ if (response.ok) {
                     </div>
                   )}
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {currentView === "banks"
+                    {currentView === "collections"
                       ? "Question Banks"
-                      : selectedBank?.name}
+                      : selectedCollection?.name}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600 ml-16">
-                  {currentView === "banks"
+                  {currentView === "collections"
                     ? "Organize and manage your question collections with AI-powered tools"
-                    : selectedBank?.description ||
+                    : selectedCollection?.description ||
                       "Manage and organize questions in this collection"}
                 </p>
-                {currentView === "banks" && (
+                {currentView === "collections" && (
                   <div className="flex items-center space-x-6 ml-16 mt-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <FolderOpen className="h-4 w-4" />
-                      <span>{questionBanks.length} Banks</span>
+                      <span>{questionCollections.length} Banks</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Clock className="h-4 w-4" />
@@ -841,7 +843,7 @@ if (response.ok) {
 
             {/* Enhanced Action Buttons */}
             <div className="flex space-x-3">
-              {currentView === "banks" ? (
+              {currentView === "collections" ? (
                 <>
                   <Button
                     onClick={() => {
@@ -856,7 +858,7 @@ if (response.ok) {
                     Use Template
                   </Button>
                   <Button
-                    onClick={() => setIsBankDialogOpen(true)}
+                    onClick={() => setIsCollectionDialogOpen(true)}
                     className="bg-emerald-500 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 px-6 py-3 rounded-xl font-medium"
                     size="lg"
                   >
@@ -890,7 +892,7 @@ if (response.ok) {
         </div>
 
         {/* Enhanced Question Banks View */}
-        {currentView === "banks" && (
+        {currentView === "collections" && (
           <div className="space-y-8">
             {/* Quick Stats */}
             <div className="flex items-center justify-between gap-2 bg-[#DAE4FF] rounded-lg border border-gray-200/50 p-6">
@@ -902,7 +904,7 @@ if (response.ok) {
                     </div>
                     <div>
                       <p className="text-xl font-bold text-blue-900">
-                        {questionBanks.length}
+                        {questionCollections.length}
                       </p>
                       <p className="text-sm text-blue-600">Question Banks</p>
                     </div>
@@ -918,7 +920,7 @@ if (response.ok) {
                     </div>
                     <div>
                       <p className="text-xl font-bold text-blue-900">
-                        {questionBanks.reduce(
+                        {questionCollections.reduce(
                           (sum, bank) => sum + (bank.questionCount || 0),
                           0
                         )}
@@ -964,7 +966,7 @@ if (response.ok) {
                   Loading your question banks...
                 </p>
               </div>
-            ) : questionBanks.length === 0 ? (
+            ) : questionCollections.length === 0 ? (
               <div className="text-center py-20">
                 <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
                   <FolderOpen className="h-12 w-12 text-blue-500" />
@@ -977,7 +979,7 @@ if (response.ok) {
                   interview questions with AI-powered tools.
                 </p>
                 <Button
-                  onClick={() => setIsBankDialogOpen(true)}
+                  onClick={() => setIsCollectionDialogOpen(true)}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   size="lg"
                 >
@@ -987,11 +989,11 @@ if (response.ok) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {questionBanks.map((bank, index) => (
+                {questionCollections.map((bank, index) => (
                   <Card
                     key={bank.id}
                     className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-blue-500/25"
-                    onClick={() => openBankView(bank)}
+                    onClick={() => openCollectionView(bank)}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <CardHeader className="pb-4">
@@ -1112,7 +1114,7 @@ if (response.ok) {
         )}
 
         {/* Enhanced Questions View */}
-        {currentView === "questions" && selectedBank && (
+        {currentView === "questions" && selectedCollection && (
           <div className="space-y-8">
             {/* Question Bank Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1547,7 +1549,7 @@ if (response.ok) {
         )}
 
         {/* Question Bank Dialog */}
-        <Dialog open={isBankDialogOpen} onOpenChange={setIsBankDialogOpen}>
+        <Dialog open={isCollectionDialogOpen} onOpenChange={setIsCollectionDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Question Bank</DialogTitle>
@@ -1560,9 +1562,9 @@ if (response.ok) {
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
-                  value={bankFormData.name}
+                  value={collectionFormData.name}
                   onChange={(e) =>
-                    setBankFormData((prev) => ({
+                    setCollectionFormData((prev) => ({
                       ...prev,
                       name: e.target.value,
                     }))
@@ -1574,9 +1576,9 @@ if (response.ok) {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={bankFormData.description}
+                  value={collectionFormData.description}
                   onChange={(e) =>
-                    setBankFormData((prev) => ({
+                    setCollectionFormData((prev) => ({
                       ...prev,
                       description: e.target.value,
                     }))
@@ -1588,9 +1590,9 @@ if (response.ok) {
                 <Label htmlFor="category">Category</Label>
                 <Input
                   id="category"
-                  value={bankFormData.category}
+                  value={collectionFormData.category}
                   onChange={(e) =>
-                    setBankFormData((prev) => ({
+                    setCollectionFormData((prev) => ({
                       ...prev,
                       category: e.target.value,
                     }))
@@ -1602,9 +1604,9 @@ if (response.ok) {
                 <Label htmlFor="tags">Tags</Label>
                 <Input
                   id="tags"
-                  value={bankFormData.tags}
+                  value={collectionFormData.tags}
                   onChange={(e) =>
-                    setBankFormData((prev) => ({
+                    setCollectionFormData((prev) => ({
                       ...prev,
                       tags: e.target.value,
                     }))
@@ -1616,11 +1618,11 @@ if (response.ok) {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsBankDialogOpen(false)}
+                onClick={() => setIsCollectionDialogOpen(false)}
               >
                 Cancel
               </Button>
-              <Button onClick={handleCreateQuestionBank}>
+              <Button onClick={handleCreateQuestionCollection}>
                 Create Question Bank
               </Button>
             </DialogFooter>
@@ -1666,33 +1668,29 @@ if (response.ok) {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem
-                        value="mcq"
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        Multiple Choice (MCQ)
+                      <SelectItem value={INTERVIEW_TYPES.MCQ}>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          Multiple Choice (MCQ)
+                        </div>
                       </SelectItem>
-                      <SelectItem
-                        value="coding"
-                        className="flex items-center gap-2"
-                      >
-                        <Code className="w-4 h-4 text-blue-500" />
-                        Coding Challenge
+                      <SelectItem value={INTERVIEW_TYPES.CODING}>
+                        <div className="flex items-center gap-2">
+                          <Code className="w-4 h-4 text-blue-500" />
+                          Coding Challenge
+                        </div>
                       </SelectItem>
-                      <SelectItem
-                        value="behavioral"
-                        className="flex items-center gap-2"
-                      >
-                        <MessageSquare className="w-4 h-4 text-purple-500" />
-                        Behavioral Interview
+                      <SelectItem value={INTERVIEW_TYPES.BEHAVIORAL}>
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-purple-500" />
+                          Behavioral Interview
+                        </div>
                       </SelectItem>
-                      <SelectItem
-                        value="combo"
-                        className="flex items-center gap-2"
-                      >
-                        <Layers className="w-4 h-4 text-orange-500" />
-                        Combo (Mixed Types)
+                      <SelectItem value={INTERVIEW_TYPES.COMBO}>
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-orange-500" />
+                          Combo (Mixed Types)
+                        </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1881,10 +1879,10 @@ if (response.ok) {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mcq">MCQ</SelectItem>
-                      <SelectItem value="coding">Coding</SelectItem>
-                      <SelectItem value="behavioral">Behavioral</SelectItem>
-                      <SelectItem value="combo">Combo (Mixed Types)</SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.MCQ}>MCQ</SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.CODING}>Coding</SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.BEHAVIORAL}>Behavioral</SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.COMBO}>Combo (Mixed Types)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2044,7 +2042,7 @@ if (response.ok) {
                       </div>
                       <div className="text-sm text-gray-600">
                         <div>
-                          Question Types: {template.questionTypes.join(", ")}
+                          Interview Types: {template.interviewTypes.join(", ")}
                         </div>
                         <div>
                           Target Roles: {template.targetRoles.join(", ")}
@@ -2086,7 +2084,7 @@ if (response.ok) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600">
                 <AlertCircle className="h-5 w-5" />
-                Delete Question Bank: {bankToDelete?.name}
+                Delete Question Bank: {collectionToDelete?.name}
               </DialogTitle>
               <DialogDescription className="text-sm text-gray-700">
                 Are you sure you want to delete this question bank?{" "}
@@ -2192,7 +2190,7 @@ if (response.ok) {
               {dependencyInfo?.canDelete && (
                 <Button
                   variant="destructive"
-                  onClick={handleDeleteQuestionBank}
+                  onClick={handleDeleteQuestionCollection}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Question Bank

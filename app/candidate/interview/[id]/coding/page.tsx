@@ -40,6 +40,9 @@ interface CodingQuestion {
   constraints: string[];
   hints?: string[];
   starterCode?: string;
+  solution?: Record<string, string>;
+  primaryLanguage?: string;
+  supportedLanguages?: string[];
 }
 
 export default function CodingInterviewPage({ params }: CodingInterviewProps) {
@@ -51,7 +54,8 @@ export default function CodingInterviewPage({ params }: CodingInterviewProps) {
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState<string>('');
   const [interviewId, setInterviewId] = useState<string | null>(null);
-  const [language, setLanguage] = useState<'java' | 'cpp' | 'python' | 'php'>('java');
+  const [language, setLanguage] = useState<string>('python'); // Default to Python
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>(['python', 'javascript', 'java', 'cpp']);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
@@ -62,6 +66,57 @@ export default function CodingInterviewPage({ params }: CodingInterviewProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const email = searchParams.get('email');
+
+  // Official CodeMirror 6 language support only
+  const LANGUAGE_CONFIG = {
+    'python': { name: 'Python', extension: 'py', comment: '#' },
+    'javascript': { name: 'JavaScript', extension: 'js', comment: '//' },
+    'typescript': { name: 'TypeScript', extension: 'ts', comment: '//' },
+    'java': { name: 'Java', extension: 'java', comment: '//' },
+    'cpp': { name: 'C++', extension: 'cpp', comment: '//' },
+    'php': { name: 'PHP', extension: 'php', comment: '//' },
+    'html': { name: 'HTML', extension: 'html', comment: '<!--' },
+    'css': { name: 'CSS', extension: 'css', comment: '/*' },
+    'sql': { name: 'SQL', extension: 'sql', comment: '--' },
+    'rust': { name: 'Rust', extension: 'rs', comment: '//' },
+  };
+
+  // Generate default starter code based on language and question solution
+  const getDefaultCode = (lang: string, questionSolution?: any): string => {
+    const config = LANGUAGE_CONFIG[lang as keyof typeof LANGUAGE_CONFIG];
+    const comment = config?.comment || '//';
+    
+    // If question has solution for this language, use it as starter template
+    if (questionSolution && questionSolution[lang]) {
+      return `${comment} Starter code template\n${comment} You can modify this solution\n\n${questionSolution[lang]}`;
+    }
+    
+    // Default templates for each language
+    const templates = {
+      'python': `# Write your solution here\ndef solution():\n    # Your code here\n    pass\n\n# Test your solution\nif __name__ == "__main__":\n    result = solution()\n    print(result)`,
+      'javascript': `// Write your solution here\nfunction solution() {\n    // Your code here\n    return null;\n}\n\n// Test your solution\nconsole.log(solution());`,
+      'typescript': `// Write your solution here\nfunction solution(): any {\n    // Your code here\n    return null;\n}\n\n// Test your solution\nconsole.log(solution());`,
+      'java': `public class Solution {\n    public static void main(String[] args) {\n        Solution sol = new Solution();\n        // Test your solution\n        System.out.println(sol.solution());\n    }\n    \n    public Object solution() {\n        // Your code here\n        return null;\n    }\n}`,
+      'cpp': `#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    // Write your solution here\n    auto solution() {\n        // Your code here\n        return nullptr;\n    }\n};\n\nint main() {\n    Solution sol;\n    // Test your solution\n    cout << "Result: " << endl;\n    return 0;\n}`,
+      'c': `#include <stdio.h>\n#include <stdlib.h>\n\n// Write your solution here\nvoid solution() {\n    // Your code here\n    printf("Hello, World!\\n");\n}\n\nint main() {\n    solution();\n    return 0;\n}`,
+      'csharp': `using System;\n\npublic class Solution {\n    public static void Main(string[] args) {\n        Solution sol = new Solution();\n        // Test your solution\n        Console.WriteLine(sol.SolutionMethod());\n    }\n    \n    public object SolutionMethod() {\n        // Your code here\n        return null;\n    }\n}`,
+      'php': `<?php\n// Write your solution here\nfunction solution() {\n    // Your code here\n    return null;\n}\n\n// Test your solution\necho solution();\n?>`,
+      'ruby': `# Write your solution here\ndef solution\n    # Your code here\n    nil\nend\n\n# Test your solution\nputs solution`,
+      'go': `package main\n\nimport "fmt"\n\n// Write your solution here\nfunc solution() interface{} {\n    // Your code here\n    return nil\n}\n\nfunc main() {\n    result := solution()\n    fmt.Println(result)\n}`,
+      'rust': `fn main() {\n    let result = solution();\n    println!("{:?}", result);\n}\n\n// Write your solution here\nfn solution() -> Option<i32> {\n    // Your code here\n    None\n}`,
+      'swift': `import Foundation\n\n// Write your solution here\nfunc solution() -> Any? {\n    // Your code here\n    return nil\n}\n\n// Test your solution\nprint(solution() ?? "No result")`,
+      'kotlin': `fun main() {\n    val result = solution()\n    println(result)\n}\n\n// Write your solution here\nfun solution(): Any? {\n    // Your code here\n    return null\n}`,
+      'scala': `object Solution {\n    def main(args: Array[String]): Unit = {\n        val result = solution()\n        println(result)\n    }\n    \n    // Write your solution here\n    def solution(): Any = {\n        // Your code here\n        null\n    }\n}`,
+      'sql': `-- Write your SQL query here\n-- Example: SELECT * FROM table_name WHERE condition;\n\nSELECT \n    -- Your columns here\nFROM \n    -- Your table here\nWHERE \n    -- Your conditions here;`,
+      'html': `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Solution</title>\n</head>\n<body>\n    <!-- Write your HTML solution here -->\n    <h1>Hello, World!</h1>\n</body>\n</html>`,
+      'css': `/* Write your CSS solution here */\n\nbody {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n}\n\n.container {\n    /* Your styles here */\n}`,
+      'dart': `void main() {\n    var result = solution();\n    print(result);\n}\n\n// Write your solution here\ndynamic solution() {\n    // Your code here\n    return null;\n}`,
+      'r': `# Write your R solution here\nsolution <- function() {\n    # Your code here\n    return(NULL)\n}\n\n# Test your solution\nresult <- solution()\nprint(result)`,
+      'matlab': `function result = solution()\n    % Write your MATLAB solution here\n    % Your code here\n    result = [];\nend\n\n% Test your solution\nresult = solution();\ndisp(result);`
+    };
+    
+    return templates[lang as keyof typeof templates] || templates['python'];
+  };
 
   // Resolve params on component mount
   useEffect(() => {
@@ -123,11 +178,32 @@ export default function CodingInterviewPage({ params }: CodingInterviewProps) {
         const codingQuestions = interviewInfo.questions?.filter((q: any) => q.type === 'coding') || [];
         if (codingQuestions.length > 0) {
           setQuestions(codingQuestions);
+          
+          // Auto-detect primary language from questions
+          const firstQuestion = codingQuestions[0];
+          let detectedLanguages: string[] = ['python', 'javascript', 'java', 'cpp']; // Default fallback
+          let primaryLanguage = 'python';
+          
+          if (firstQuestion.primaryLanguage) {
+            primaryLanguage = firstQuestion.primaryLanguage;
+          }
+          
+          if (firstQuestion.supportedLanguages && Array.isArray(firstQuestion.supportedLanguages)) {
+            detectedLanguages = firstQuestion.supportedLanguages;
+          }
+          
+          // Set available languages and primary language
+          setAvailableLanguages(detectedLanguages);
+          setLanguage(primaryLanguage);
+          
+          console.log(`🎯 Auto-detected coding languages:`, detectedLanguages);
+          console.log(`🚀 Primary language set to:`, primaryLanguage);
+          
           // Set initial code from starter code if available
-          if (codingQuestions[0].starterCode) {
-            setCode(codingQuestions[0].starterCode);
+          if (firstQuestion.starterCode) {
+            setCode(firstQuestion.starterCode);
           } else {
-            setCode(getDefaultCode(language));
+            setCode(getDefaultCode(primaryLanguage, firstQuestion.solution));
           }
         }
         
@@ -152,44 +228,12 @@ export default function CodingInterviewPage({ params }: CodingInterviewProps) {
       if (currentQuestion?.starterCode) {
         setCode(currentQuestion.starterCode);
       } else {
-        setCode(getDefaultCode(language));
+        setCode(getDefaultCode(language, currentQuestion.solution));
       }
     }
   }, [language, activeQuestionIndex, questions]);
 
-  const getDefaultCode = (lang: string) => {
-    const templates = {
-      java: `public class Solution {
-    public int solve() {
-        // Write your code here
-        return 0;
-    }
-}`,
-      python: `def solve():
-    # Write your code here
-    return 0`,
-      cpp: `#include <iostream>
-#include <vector>
-using namespace std;
 
-class Solution {
-public:
-    int solve() {
-        // Write your code here
-        return 0;
-    }
-};`,
-      php: `<?php
-class Solution {
-    public function solve() {
-        // Write your code here
-        return 0;
-    }
-}
-?>`
-    };
-    return templates[lang as keyof typeof templates] || templates.java;
-  };
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -473,14 +517,15 @@ class Solution {
             
             <div className="flex items-center space-x-3">
               <Select value={language} onValueChange={(value: any) => setLanguage(value)}>
-                <SelectTrigger className="w-32 bg-gray-700 border-gray-600">
+                <SelectTrigger className="w-40 bg-gray-700 border-gray-600">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="java">Java</SelectItem>
-                  <SelectItem value="python">Python</SelectItem>
-                  <SelectItem value="cpp">C++</SelectItem>
-                  <SelectItem value="php">PHP</SelectItem>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  {availableLanguages.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      {LANGUAGE_CONFIG[lang as keyof typeof LANGUAGE_CONFIG]?.name || lang}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               

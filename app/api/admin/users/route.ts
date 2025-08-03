@@ -3,7 +3,7 @@ import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { 
   users, companies, candidateAccess, candidateScores, interviewSetups, 
-  campaignInterviews, questionBank, skillTemplates, interviewTemplates, 
+  campaignInterviews, questions, skillTemplates, interviewTemplates, 
   jobDescriptionTemplates, apiTokens, ssoConfigurations, webhooks, 
   systemNotifications 
 } from '@/lib/database/schema';
@@ -246,7 +246,7 @@ export async function DELETE(request: NextRequest) {
         db.update(interviewSetups).set({ createdBy: null }).where(eq(interviewSetups.createdBy, id)).catch(() => {}),
         db.update(campaignInterviews).set({ interviewerId: null }).where(eq(campaignInterviews.interviewerId, id)).catch(() => {}),
         // Delete records where createdBy is not nullable
-        db.delete(questionBank).where(eq(questionBank.createdBy, id)).catch(() => {}),
+        db.delete(questions).where(eq(questions.createdBy, id)).catch(() => {}),
         db.delete(skillTemplates).where(eq(skillTemplates.createdBy, id)).catch(() => {}),
         db.delete(interviewTemplates).where(eq(interviewTemplates.createdBy, id)).catch(() => {}),
         db.delete(jobDescriptionTemplates).where(eq(jobDescriptionTemplates.createdBy, id)).catch(() => {}),
