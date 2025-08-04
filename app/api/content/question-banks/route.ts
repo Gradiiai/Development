@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { questionCollections, questions } from '@/lib/database/schema';
-import { eq, and, desc, ilike } from 'drizzle-orm';
+import { eq, and, desc, ilike, or, isNull } from 'drizzle-orm';
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -26,7 +26,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       .from(questionCollections)
       .where(and(
         eq(questionCollections.id, bankId),
-        eq(questionCollections.companyId, companyId)
+        or(
+          eq(questionCollections.companyId, companyId), // Own company
+          eq(questionCollections.isPublic, true), // Public banks
+          isNull(questionCollections.companyId) // System templates
+        )
       ));
 
     if (!collection) {
@@ -41,9 +45,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const search = searchParams.get('search');
     
     // Build where conditions
+    // Since we already verified collection access above, just get questions from this collection
     const whereConditions = [
       eq(questions.collectionId, bankId),
-      eq(questions.companyId, companyId),
       eq(questions.isActive, true)
     ];
 

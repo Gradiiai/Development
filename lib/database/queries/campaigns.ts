@@ -1,4 +1,4 @@
-import { eq, desc, and, or, like, count, gte, lte, SQL, ne } from 'drizzle-orm';
+import { eq, desc, and, or, like, count, gte, lte, SQL, ne, isNull, sql } from 'drizzle-orm';
 import { db, executeWithRetry } from '../connection';
 import { 
   jobCampaigns, 
@@ -799,7 +799,10 @@ export async function getScoringParameters(campaignId: string) {
 export async function getInterviewSetups(campaignId: string) {
   try {
     const result = await db.select().from(interviewSetups)
-      .where(eq(interviewSetups.campaignId, campaignId));
+      .where(and(
+        eq(interviewSetups.campaignId, campaignId),
+        eq(interviewSetups.isActive, true)
+      ));
     
     return {
       success: true,
@@ -1048,19 +1051,40 @@ export async function createQuestion(data: {
 }
 
 export async function getQuestions(filters: {
-  companyId: string;
+  companyId?: string;
   collectionId?: string;
   questionType?: string;
   category?: string;
   difficultyLevel?: string;
   search?: string;
   tags?: string;
+  allowCrossCompany?: boolean; // Add flag for super admin access
 }) {
   try {
-    const conditions: (SQL | undefined)[] = [eq(questions.companyId, filters.companyId)];
+    const conditions: (SQL | undefined)[] = [];
 
+    // Allow access to questions from:
+    // 1. Same company
+    // 2. System questions (companyId is null)
+    // 3. Questions in collections that the user has access to (via collectionId)
+    // 4. Questions created by the current user (for company migration scenarios)
+    // 5. Cross-company access for super admins
     if (filters.collectionId) {
+      // If collectionId is specified, get questions from that collection
       conditions.push(eq(questions.collectionId, filters.collectionId));
+      
+      // For super admins or cross-company access, no additional filtering needed
+      // For regular users, we already verified collection access in the API routes
+      // So if they have access to the collection, they should have access to its questions
+    } else if (filters.allowCrossCompany) {
+      // Super admin can access all questions
+      // No company restriction needed
+    } else if (filters.companyId) {
+      // If no collectionId specified, only show questions from same company or system questions
+      conditions.push(or(
+        eq(questions.companyId, filters.companyId),
+        isNull(questions.companyId)
+      ));
     }
 
     if (filters.questionType) {
@@ -1072,7 +1096,8 @@ export async function getQuestions(filters: {
     }
 
     if (filters.difficultyLevel) {
-      conditions.push(eq(questions.difficultyLevel, filters.difficultyLevel));
+      // Case-insensitive difficulty level matching
+      conditions.push(sql`LOWER(${questions.difficultyLevel}) = LOWER(${filters.difficultyLevel})`);
     }
 
     if (filters.tags) {
@@ -1092,11 +1117,13 @@ export async function getQuestions(filters: {
     }
 
     const finalConditions = conditions.filter((c): c is SQL => Boolean(c));
-
+    
     const questionResults = await db.select()
       .from(questions)
-      .where(and(...finalConditions))
+      .where(finalConditions.length > 0 ? and(...finalConditions) : undefined)
       .orderBy(desc(questions.createdAt));
+
+    console.log(`✅ getQuestions: Found ${questionResults.length} questions for collection ${filters.collectionId} (${filters.questionType}, ${filters.difficultyLevel})`);
 
     return { success: true, data: questionResults };
   } catch (error) {

@@ -71,9 +71,10 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id || '';
 
     // Check if companyId exists to prevent UUID parsing errors
-    if (!companyId) {
+    // For super admins, allow creating system-wide questions (companyId can be null)
+    if (!companyId && session.user.role !== 'super-admin') {
       return NextResponse.json(
-        { success: false, error: 'Company ID is required' },
+        { success: false, error: 'Company ID is required for non-admin users' },
         { status: 400 }
       );
     }

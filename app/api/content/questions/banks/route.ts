@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { questionCollections, questions } from '@/lib/database/schema';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { eq, and, desc, count, or, isNull } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,12 +17,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // First get all question collections
+    // Get question collections that the user can access:
+    // 1. Their own company's question banks
+    // 2. Public question banks from other companies  
+    // 3. System templates (companyId = null)
     const collections = await db
       .select()
       .from(questionCollections)
       .where(and(
-        eq(questionCollections.companyId, companyId),
+        or(
+          eq(questionCollections.companyId, companyId), // Own company
+          eq(questionCollections.isPublic, true), // Public banks
+          isNull(questionCollections.companyId) // System templates
+        ),
         eq(questionCollections.isActive, true)
       ))
       .orderBy(desc(questionCollections.createdAt));
@@ -95,9 +102,17 @@ export async function POST(req: NextRequest) {
     if (!name || !category) {
       return NextResponse.json({ success: false, error: 'Name and category are required' }, { status: 400 });
     }
-    if (!companyId || !userId) {
+    if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Required fields missing' },
+        { success: false, error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // For super admins, allow creating system-wide question banks (companyId can be null)
+    if (!companyId && session.user.role !== 'super-admin') {
+      return NextResponse.json(
+        { success: false, error: 'Company ID is required for non-admin users' },
         { status: 400 }
       );
     }
@@ -112,8 +127,8 @@ export async function POST(req: NextRequest) {
         category,
         subCategory: subCategory || null,
         tags: tags ? JSON.stringify(Array.isArray(tags) ? tags : tags.split(',').map((t: string) => t.trim())) : null,
-        isPublic: isPublic || false,
-        collectionType,
+        isPublic: isPublic || (session.user.role === 'super-admin'), // Auto-mark super admin question banks as public
+        collectionType: session.user.role === 'super-admin' ? 'system_template' : collectionType,
         questionCount: 0,
         usageCount: 0,
       })

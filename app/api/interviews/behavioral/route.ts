@@ -159,7 +159,8 @@ export async function POST(request: NextRequest) {
           companyId: session.user.companyId!,
           collectionId: validatedData.questionBank,
           questionType: 'behavioral',
-          difficultyLevel: validatedData.difficultyLevel
+          difficultyLevel: validatedData.difficultyLevel,
+          allowCrossCompany: session.user.role === 'super-admin'
         });
 
         if (questionsResult.success && questionsResult.data && questionsResult.data.length > 0) {

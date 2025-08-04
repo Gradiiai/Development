@@ -209,7 +209,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.sub as string;
         session.user.role = token.role as string;
-        session.user.companyId = token.companyId as string;
+        session.user.companyId = token.companyId as string | null;
         session.user.image = token.picture as string;
       }
       return session;

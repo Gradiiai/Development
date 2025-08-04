@@ -344,9 +344,14 @@ export default function CandidateInterviews() {
 
   const counts = getInterviewCounts();
 
-  const getTimeUntilInterview = (date: Date) => {
+  const getTimeUntilInterview = (date: Date | string | null | undefined) => {
+    if (!date) return "unknown";
+    
+    const interviewDate = new Date(date);
+    if (isNaN(interviewDate.getTime())) return "unknown";
+    
     const now = new Date();
-    const diffMs = date.getTime() - now.getTime();
+    const diffMs = interviewDate.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
     
@@ -363,12 +368,16 @@ export default function CandidateInterviews() {
   };
 
   const canJoinInterview = (interview: Interview) => {
+    if (!interview.scheduledDate || !interview.meetingLink) return false;
+    
+    const interviewTime = new Date(interview.scheduledDate);
+    if (isNaN(interviewTime.getTime())) return false;
+    
     const now = new Date();
-    const interviewTime = interview.scheduledDate;
     const joinWindow = addHours(interviewTime, -0.25); // 15 minutes before
     const endWindow = addHours(interviewTime, interview.duration / 60);
     
-    return isAfter(now, joinWindow) && isBefore(now, endWindow) && interview.meetingLink;
+    return isAfter(now, joinWindow) && isBefore(now, endWindow);
   };
 
   const InterviewCard = ({ interview }: { interview: Interview }) => {
@@ -459,12 +468,18 @@ export default function CandidateInterviews() {
           <div className="space-y-2 mb-4">
             <div className="flex items-center text-sm text-gray-600">
               <Calendar className="w-4 h-4 mr-2" />
-              {format(interview.scheduledDate, "EEEE, MMMM d, yyyy")}
+              {interview.scheduledDate && !isNaN(new Date(interview.scheduledDate).getTime()) 
+                ? format(new Date(interview.scheduledDate), "EEEE, MMMM d, yyyy")
+                : "Date not scheduled"
+              }
             </div>
             <div className="flex items-center text-sm text-gray-600">
               <Clock className="w-4 h-4 mr-2" />
-              {format(interview.scheduledDate, "h:mm a")} ({interview.duration} min)
-              {interview.status === "scheduled" && (
+              {interview.scheduledDate && !isNaN(new Date(interview.scheduledDate).getTime()) 
+                ? `${format(new Date(interview.scheduledDate), "h:mm a")} (${interview.duration} min)`
+                : "Time not scheduled"
+              }
+              {interview.status === "scheduled" && interview.scheduledDate && (
                 <span className="ml-2 text-blue-600 font-medium">
                   {getTimeUntilInterview(interview.scheduledDate)}
                 </span>
@@ -666,11 +681,17 @@ export default function CandidateInterviews() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                        {format(selectedInterview.scheduledDate, "EEEE, MMMM d, yyyy")}
+                        {selectedInterview.scheduledDate && !isNaN(new Date(selectedInterview.scheduledDate).getTime()) 
+                          ? format(new Date(selectedInterview.scheduledDate), "EEEE, MMMM d, yyyy")
+                          : "Date not scheduled"
+                        }
                       </div>
                       <div className="flex items-center">
                         <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                        {format(selectedInterview.scheduledDate, "h:mm a")} ({selectedInterview.duration} min)
+                        {selectedInterview.scheduledDate && !isNaN(new Date(selectedInterview.scheduledDate).getTime()) 
+                          ? `${format(new Date(selectedInterview.scheduledDate), "h:mm a")} (${selectedInterview.duration} min)`
+                          : "Time not scheduled"
+                        }
                       </div>
                       {selectedInterview.location && (
                         <div className="flex items-center">

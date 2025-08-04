@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
           companyId: session.user.companyId!,
           collectionId: validatedData.questionBank,
           questionType: 'coding',
+          allowCrossCompany: session.user.role === 'super-admin',
           difficultyLevel: validatedData.difficultyLevel
         });
 

@@ -258,7 +258,8 @@ export async function POST(request: NextRequest) {
           companyId: campaign.companyId,
           collectionId: questionCollectionId,
           questionType: interviewType,
-          difficultyLevel: setup.difficultyLevel || undefined
+          difficultyLevel: setup.difficultyLevel || undefined,
+          allowCrossCompany: session.user.role === 'super-admin'
         });
         
         console.log(`🔍 getQuestions result:`, {

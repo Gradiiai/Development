@@ -101,60 +101,112 @@ export async function GET(
         roundName: campInterview.roundName
       });
 
-      // Get questions from question bank with AI fallback
+      // Get questions: First try stored questions, then question bank, then AI fallback
       let questions: any[] = [];
       let questionSource = 'question_bank';
       
+      // First, try to get questions from stored interview record (prevents double generation)
       try {
-        if (campInterview.questionCollectionId) {
-          console.log(`🔍 Fetching questions from question bank:`, {
-            questionCollectionId: campInterview.questionCollectionId,
-            questionType: interviewType,
-            difficultyLevel: campInterview.difficultyLevel,
-            numberOfQuestions: campInterview.numberOfQuestions
-          });
-
-          // Validate that questionCollectionId is a valid UUID format
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-          const isValidUUID = uuidRegex.test(campInterview.questionCollectionId);
-
-          if (!isValidUUID) {
-            console.warn(`⚠️ Invalid question bank ID format: "${campInterview.questionCollectionId}" (not a valid UUID), using AI fallback...`);
-            throw new Error(`Invalid question bank ID format: ${campInterview.questionCollectionId}`);
+        console.log(`🔍 Checking for stored questions in interview record: ${id}`);
+        
+        // Check if there's an existing Interview or CodingInterview record with stored questions
+        let storedQuestions = null;
+        
+        // Try Interview table first (behavioral, mcq, combo)
+        const interviewRecord = await db
+          .select({ interviewQuestions: Interview.interviewQuestions })
+          .from(Interview)
+          .where(eq(Interview.interviewId, id))
+          .limit(1);
+        
+        if (interviewRecord.length > 0 && interviewRecord[0].interviewQuestions) {
+          try {
+            storedQuestions = JSON.parse(interviewRecord[0].interviewQuestions);
+            console.log(`✅ Found stored questions in Interview table: ${storedQuestions.length} questions`);
+          } catch (parseError) {
+            console.warn(`⚠️ Failed to parse stored questions from Interview table`);
           }
-
-          // Get the company ID from the campaign data
-          const campaignDetails = await db
-            .select({ companyId: jobCampaigns.companyId })
-            .from(jobCampaigns)
-            .where(eq(jobCampaigns.id, campInterview.campaignId))
+        }
+        
+        // If not found in Interview table, try CodingInterview table
+        if (!storedQuestions) {
+          const codingInterviewRecord = await db
+            .select({ codingQuestions: CodingInterview.codingQuestions })
+            .from(CodingInterview)
+            .where(eq(CodingInterview.interviewId, id))
             .limit(1);
-
-          if (campaignDetails.length > 0) {
-            const questionsResult = await getQuestions({
-              companyId: campaignDetails[0].companyId,
-              collectionId: campInterview.questionCollectionId,
-              questionType: campInterview.interviewType || interviewType,
-              difficultyLevel: campInterview.difficultyLevel || undefined
-            });
-            
-            if (questionsResult.success && questionsResult.data && questionsResult.data.length > 0) {
-              // Shuffle questions and limit to numberOfQuestions
-              const shuffledQuestions = questionsResult.data.sort(() => Math.random() - 0.5);
-              questions = shuffledQuestions.slice(0, campInterview.numberOfQuestions || 5);
-              questionSource = 'question_bank';
-              
-              console.log(`✅ Fetched ${questions.length} questions from question bank`);
-            } else {
-              console.warn(`⚠️ Question bank ${campInterview.questionCollectionId} is empty, using AI fallback...`);
-              throw new Error('Question bank unavailable');
+          
+          if (codingInterviewRecord.length > 0 && codingInterviewRecord[0].codingQuestions) {
+            try {
+              storedQuestions = JSON.parse(codingInterviewRecord[0].codingQuestions);
+              console.log(`✅ Found stored questions in CodingInterview table: ${storedQuestions.length} questions`);
+            } catch (parseError) {
+              console.warn(`⚠️ Failed to parse stored questions from CodingInterview table`);
             }
           }
-        } else {
-          console.warn(`⚠️ No question bank configured, using AI fallback...`);
-          throw new Error('No question bank configured');
         }
-      } catch (questionBankError) {
+        
+        if (storedQuestions && storedQuestions.length > 0) {
+          questions = storedQuestions;
+          questionSource = 'stored_interview';
+          console.log(`✅ Using stored questions: ${questions.length} questions`);
+        } else {
+          throw new Error('No stored questions found, falling back to question bank');
+        }
+      } catch (storedQuestionsError) {
+        console.log(`🔍 No stored questions found, trying question bank...`);
+        
+        // Fallback to question bank if no stored questions
+        try {
+          if (campInterview.questionCollectionId) {
+            console.log(`🔍 Fetching questions from question bank:`, {
+              questionCollectionId: campInterview.questionCollectionId,
+              questionType: interviewType,
+              difficultyLevel: campInterview.difficultyLevel,
+              numberOfQuestions: campInterview.numberOfQuestions
+            });
+
+            // Validate that questionCollectionId is a valid UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const isValidUUID = uuidRegex.test(campInterview.questionCollectionId);
+
+            if (!isValidUUID) {
+              console.warn(`⚠️ Invalid question bank ID format: "${campInterview.questionCollectionId}" (not a valid UUID), using AI fallback...`);
+              throw new Error(`Invalid question bank ID format: ${campInterview.questionCollectionId}`);
+            }
+
+            // Get the company ID from the campaign data
+            const campaignDetails = await db
+              .select({ companyId: jobCampaigns.companyId })
+              .from(jobCampaigns)
+              .where(eq(jobCampaigns.id, campInterview.campaignId))
+              .limit(1);
+
+            if (campaignDetails.length > 0) {
+              const questionsResult = await getQuestions({
+                companyId: campaignDetails[0].companyId,
+                collectionId: campInterview.questionCollectionId,
+                questionType: campInterview.interviewType || interviewType,
+                difficultyLevel: campInterview.difficultyLevel || undefined
+              });
+              
+              if (questionsResult.success && questionsResult.data && questionsResult.data.length > 0) {
+                // Shuffle questions and limit to numberOfQuestions
+                const shuffledQuestions = questionsResult.data.sort(() => Math.random() - 0.5);
+                questions = shuffledQuestions.slice(0, campInterview.numberOfQuestions || 5);
+                questionSource = 'question_bank';
+                
+                console.log(`✅ Fetched ${questions.length} questions from question bank`);
+              } else {
+                console.warn(`⚠️ Question bank ${campInterview.questionCollectionId} is empty, using AI fallback...`);
+                throw new Error('Question bank unavailable');
+              }
+            }
+          } else {
+            console.warn(`⚠️ No question bank configured, using AI fallback...`);
+            throw new Error('No question bank configured');
+          }
+        } catch (questionBankError) {
         console.log(`🤖 Using AI fallback for question generation during interview...`);
         
         try {
@@ -200,7 +252,7 @@ export async function GET(
           questionSource = 'default_fallback';
         }
       }
-
+      
       // Transform to unified format
       setup = {
         id: campInterview.interviewId,
@@ -221,6 +273,7 @@ export async function GET(
           companyName: campInterview.companyName
         }
       };
+    }
     } else {
       // Try to find in Interview table (MCQ, Behavioral, Combo)
       const interview = await db

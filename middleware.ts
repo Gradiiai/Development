@@ -160,6 +160,11 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set('x-user-id', session.user.id || '');
     requestHeaders.set('x-user-role', userRole);
     requestHeaders.set('x-company-id', session.user.companyId || '');
+    
+    // For super admins, ensure they can access admin routes even without companyId
+    if (userRole === 'super-admin') {
+      requestHeaders.set('x-super-admin', 'true');
+    }
 
     return NextResponse.next({
       request: {

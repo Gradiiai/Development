@@ -129,13 +129,15 @@ export async function POST(request: NextRequest) {
             companyId: session.user.companyId!,
             collectionId: validatedData.questionBank,
             questionType: 'behavioral',
-            difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty
+            difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty,
+            allowCrossCompany: session.user.role === 'super-admin'
           }),
           getQuestions({
             companyId: session.user.companyId!,
             collectionId: validatedData.questionBank,
             questionType: 'mcq',
-            difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty
+            difficultyLevel: validatedData.difficultyLevel || validatedData.difficulty,
+            allowCrossCompany: session.user.role === 'super-admin'
           })
         ]);
 
