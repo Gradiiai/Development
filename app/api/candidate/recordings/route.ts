@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth';
-import { db } from '@/lib/database/db';
+import { auth } from '@/auth';
+import { db } from '@/lib/database/connection';
 import { interviewRecordings } from '@/lib/database/schema';
 import { eq, and } from 'drizzle-orm';
 
 // GET - Fetch recordings for a candidate
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,8 +47,8 @@ export async function GET(request: NextRequest) {
 // POST - Save recording metadata
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -74,11 +73,12 @@ export async function POST(request: NextRequest) {
     const recording = await db
       .insert(interviewRecordings)
       .values({
-        candidateId: session.user.id,
+        candidateId: session.user.id!,
         interviewId: interviewId || null,
         questionId: questionId || null,
         questionIndex: questionIndex || null,
         azureUrl,
+        fileName: `recording_${Date.now()}.webm`, // Generate a default filename
         duration: duration || null,
         fileSize: fileSize || null,
         recordingType,
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
 // DELETE - Delete recording
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -3,12 +3,18 @@ import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { skillTemplates, interviewTemplates, jobDescriptionTemplates } from '@/lib/database/schema';
 import { eq, and, or, sql } from 'drizzle-orm';
+import { validateCompanyId } from '@/lib/api/utils';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSessionWithAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
 
     const body = await request.json();
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
           and(
             eq(skillTemplates.id, templateId),
             or(
-              eq(skillTemplates.companyId, session.user.companyId),
+              eq(skillTemplates.companyId, companyValidation.companyId),
               eq(skillTemplates.isPublic, true),
               eq(skillTemplates.createdBy, session.user.id)
             )
@@ -76,7 +82,7 @@ export async function POST(request: NextRequest) {
           and(
             eq(interviewTemplates.id, templateId),
             or(
-              eq(interviewTemplates.companyId, session.user.companyId),
+              eq(interviewTemplates.companyId, companyValidation.companyId),
               eq(interviewTemplates.isPublic, true),
               eq(interviewTemplates.createdBy, session.user.id)
             )
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
           and(
             eq(jobDescriptionTemplates.id, templateId),
             or(
-              eq(jobDescriptionTemplates.companyId, session.user.companyId),
+              eq(jobDescriptionTemplates.companyId, companyValidation.companyId),
               eq(jobDescriptionTemplates.isPublic, true),
               eq(jobDescriptionTemplates.createdBy, session.user.id)
             )
@@ -173,6 +179,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const templateType = searchParams.get('templateType');
     const templateId = searchParams.get('templateId');
@@ -183,7 +194,7 @@ export async function GET(request: NextRequest) {
       // Get specific template type
       if (templateType === 'skill') {
         let conditions = [
-          eq(skillTemplates.companyId, session.user.companyId),
+          eq(skillTemplates.companyId, companyValidation.companyId),
           eq(skillTemplates.isPublic, true),
           eq(skillTemplates.createdBy, session.user.id)
         ];
@@ -207,7 +218,7 @@ export async function GET(request: NextRequest) {
           .orderBy(skillTemplates.usageCount);
       } else if (templateType === 'interview') {
         let conditions = [
-          eq(interviewTemplates.companyId, session.user.companyId),
+          eq(interviewTemplates.companyId, companyValidation.companyId),
           eq(interviewTemplates.isPublic, true),
           eq(interviewTemplates.createdBy, session.user.id)
         ];
@@ -231,7 +242,7 @@ export async function GET(request: NextRequest) {
           .orderBy(interviewTemplates.usageCount);
       } else if (templateType === 'job_description') {
         let conditions = [
-          eq(jobDescriptionTemplates.companyId, session.user.companyId),
+          eq(jobDescriptionTemplates.companyId, companyValidation.companyId),
           eq(jobDescriptionTemplates.isPublic, true),
           eq(jobDescriptionTemplates.createdBy, session.user.id)
         ];
@@ -268,7 +279,7 @@ export async function GET(request: NextRequest) {
           .from(skillTemplates)
           .where(
             or(
-              eq(skillTemplates.companyId, session.user.companyId),
+              eq(skillTemplates.companyId, companyValidation.companyId),
               eq(skillTemplates.isPublic, true),
               eq(skillTemplates.createdBy, session.user.id)
             )
@@ -284,7 +295,7 @@ export async function GET(request: NextRequest) {
           .from(interviewTemplates)
           .where(
             or(
-              eq(interviewTemplates.companyId, session.user.companyId),
+              eq(interviewTemplates.companyId, companyValidation.companyId),
               eq(interviewTemplates.isPublic, true),
               eq(interviewTemplates.createdBy, session.user.id)
             )
@@ -300,7 +311,7 @@ export async function GET(request: NextRequest) {
           .from(jobDescriptionTemplates)
           .where(
             or(
-              eq(jobDescriptionTemplates.companyId, session.user.companyId),
+              eq(jobDescriptionTemplates.companyId, companyValidation.companyId),
               eq(jobDescriptionTemplates.isPublic, true),
               eq(jobDescriptionTemplates.createdBy, session.user.id)
             )

@@ -6,6 +6,7 @@ import {
   updateQuestion,
   deleteQuestion
 } from '@/lib/database/queries/campaigns';
+import { validateCompanyId } from '@/lib/api/utils';
 
 // GET /api/question-bank
 export async function GET(req: NextRequest) {
@@ -67,16 +68,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const companyId = session.user.companyId;
     const userId = session.user.id || '';
 
-    // Check if companyId exists to prevent UUID parsing errors
     // For super admins, allow creating system-wide questions (companyId can be null)
-    if (!companyId && session.user.role !== 'super-admin') {
-      return NextResponse.json(
-        { success: false, error: 'Company ID is required for non-admin users' },
-        { status: 400 }
-      );
+    let companyId: string | null;
+    if (session.user.role !== 'super-admin') {
+      const companyValidation = validateCompanyId(session.user.companyId);
+      if (!companyValidation.success) {
+        return companyValidation.response;
+      }
+      companyId = companyValidation.companyId;
+    } else {
+      companyId = session.user.companyId;
     }
 
     // Validate required fields including collectionId

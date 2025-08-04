@@ -7,7 +7,7 @@ export interface AuthContext {
     id: string;
     email: string;
     role: string;
-    companyId: string;
+    companyId: string | null;
   };
 }
 

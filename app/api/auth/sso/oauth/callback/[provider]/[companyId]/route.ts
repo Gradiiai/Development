@@ -3,7 +3,7 @@ import { db } from '@/lib/database/connection';
 import { ssoConfigurations, users, companies } from '@/lib/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { SignJWT } from 'jose';
-import { cookies } from 'next/headers';
+import { sessionManager } from '@/lib/redis';
 
 // GET - OAuth Callback endpoint
 export async function GET(
@@ -32,12 +32,18 @@ export async function GET(
       );
     }
 
-    // Validate state parameter
-    const cookieStore = await cookies();
-    const storedState = cookieStore.get(`oauth_state_${companyId}`)?.value;
+    // Validate state parameter using Redis
     const [receivedState, receivedCompanyId] = state.split(':');
     
-    if (!storedState || storedState !== receivedState || receivedCompanyId !== companyId) {
+    if (receivedCompanyId !== companyId) {
+      return NextResponse.redirect(
+        new URL('/auth/signin?error=invalid_company', process.env.NEXT_PUBLIC_APP_URL!)
+      );
+    }
+    
+    const stateValidation = await sessionManager.validateOAuthState(companyId, receivedState);
+    
+    if (!stateValidation.valid || stateValidation.provider !== provider) {
       return NextResponse.redirect(
         new URL('/auth/signin?error=invalid_state', process.env.NEXT_PUBLIC_APP_URL!)
       );
@@ -180,7 +186,7 @@ export async function GET(
       .setExpirationTime('24h')
       .sign(secret);
 
-    // Set session cookie and clear state cookie
+    // Set session cookie
     const response = NextResponse.redirect(
       new URL('/dashboard', process.env.NEXT_PUBLIC_APP_URL!)
     );
@@ -192,8 +198,6 @@ export async function GET(
       maxAge: 24 * 60 * 60, // 24 hours
       path: '/',
     });
-    
-    response.cookies.delete(`oauth_state_${companyId}`);
 
     return response;
   } catch (error) {

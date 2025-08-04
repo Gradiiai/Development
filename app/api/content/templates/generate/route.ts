@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { skillTemplates, interviewTemplates, jobDescriptionTemplates } from '@/lib/database/schema';
+import { validateCompanyId } from '@/lib/api/utils';
 import OpenAI from 'openai';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,6 +13,11 @@ export async function POST(request: NextRequest) {
     const session = await getServerSessionWithAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
 
     const body = await request.json();
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
               generatedAt: new Date().toISOString()
             },
             createdBy: session.user.id,
-            companyId: session.user.companyId
+            companyId: companyValidation.companyId
           })
           .returning();
 
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
               generatedAt: new Date().toISOString()
             },
             createdBy: session.user.id,
-            companyId: session.user.companyId
+            companyId: companyValidation.companyId
           })
           .returning();
 
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
               generatedAt: new Date().toISOString()
             },
             createdBy: session.user.id,
-            companyId: session.user.companyId
+            companyId: companyValidation.companyId
           })
           .returning();
 

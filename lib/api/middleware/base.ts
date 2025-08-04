@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
+import { rateLimiter, getClientIp, type RateLimitConfig } from '@/lib/redis';
 
 // Enhanced API middleware for better error handling and logging
 export interface APIHandler {
@@ -16,19 +17,6 @@ export interface APIMiddlewareOptions {
   logRequests?: boolean;
 }
 
-// Rate limiting store (in production, use Redis or similar)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-// Clean up old rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (now > value.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 60000); // Clean every minute
-
 export function withAPIMiddleware(
   handler: APIHandler,
   options: APIMiddlewareOptions = {}
@@ -43,38 +31,38 @@ export function withAPIMiddleware(
         console.log(`[${requestId}] ${req.method} ${req.url} - Started`);
       }
 
-      // Rate limiting
+      // Rate limiting with Redis
       if (options.rateLimit) {
-        const clientIP = req.headers.get('x-forwarded-for') || 
-                        req.headers.get('x-real-ip') || 
-                        req.headers.get('cf-connecting-ip') || 
-                        'unknown';
-        const key = `${clientIP}:${req.url}`;
-        const now = Date.now();
-        const windowMs = options.rateLimit.windowMs;
-        const limit = options.rateLimit.requests;
+        const clientIP = getClientIp(req);
+        const path = new URL(req.url).pathname;
+        const identifier = `${clientIP}:${path}`;
         
-        const current = rateLimitStore.get(key);
+        const rateLimitConfig: RateLimitConfig = {
+          windowMs: options.rateLimit.windowMs,
+          maxRequests: options.rateLimit.requests,
+        };
         
-        if (current) {
-          if (now < current.resetTime) {
-            if (current.count >= limit) {
-              return NextResponse.json(
-                {
-                  success: false,
-                  error: 'Rate limit exceeded',
-                  retryAfter: Math.ceil((current.resetTime - now) / 1000),
-                },
-                { status: 429 }
-              );
+        const rateLimit = await rateLimiter.checkRateLimit(identifier, rateLimitConfig);
+        
+        if (!rateLimit.allowed) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Rate limit exceeded',
+              retryAfter: Math.ceil(options.rateLimit.windowMs / 1000),
+              resetTime: rateLimit.resetTime,
+              remaining: rateLimit.remaining,
+            },
+            { 
+              status: 429,
+              headers: {
+                'X-RateLimit-Limit': options.rateLimit.requests.toString(),
+                'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+                'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+                'Retry-After': Math.ceil(options.rateLimit.windowMs / 1000).toString(),
+              }
             }
-            current.count++;
-          } else {
-            // Reset window
-            rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
-          }
-        } else {
-          rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+          );
         }
       }
 

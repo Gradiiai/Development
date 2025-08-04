@@ -201,51 +201,15 @@ function getClientIp(request: NextRequest): string {
 }
 
 /**
- * Rate limiting for API endpoints
+ * Rate limiting for API endpoints using Redis
  */
-interface RateLimitConfig {
-  windowMs: number; // Time window in milliseconds
-  maxRequests: number; // Maximum requests per window
-}
+import { rateLimiter, RateLimitConfig } from '@/lib/redis';
 
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-export function checkRateLimit(
+export async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig
-): { allowed: boolean; remaining: number; resetTime: number } {
-  const now = Date.now();
-  const key = identifier;
-  
-  const current = rateLimitStore.get(key);
-  
-  if (!current || now > current.resetTime) {
-    // Reset or initialize
-    const resetTime = now + config.windowMs;
-    rateLimitStore.set(key, { count: 1, resetTime });
-    return {
-      allowed: true,
-      remaining: config.maxRequests - 1,
-      resetTime,
-    };
-  }
-  
-  if (current.count >= config.maxRequests) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetTime: current.resetTime,
-    };
-  }
-  
-  current.count++;
-  rateLimitStore.set(key, current);
-  
-  return {
-    allowed: true,
-    remaining: config.maxRequests - current.count,
-    resetTime: current.resetTime,
-  };
+): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+  return await rateLimiter.checkRateLimit(identifier, config);
 }
 
 /**
@@ -255,7 +219,7 @@ export function withRateLimit(config: RateLimitConfig) {
   return function (handler: Function) {
     return async function (request: NextRequest, ...args: any[]): Promise<Response> {
       const identifier = getClientIp(request);
-      const rateLimit = checkRateLimit(identifier, config);
+      const rateLimit = await checkRateLimit(identifier, config);
       
       if (!rateLimit.allowed) {
         return new Response(

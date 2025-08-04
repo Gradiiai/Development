@@ -1030,7 +1030,7 @@ export async function updateCampaignInterview(id: string, data: {
 // Question Bank Operations
 export async function createQuestion(data: {
   collectionId: string;
-  companyId: string;
+  companyId: string | null;
   createdBy: string;
   questionType: string;
   category: string;

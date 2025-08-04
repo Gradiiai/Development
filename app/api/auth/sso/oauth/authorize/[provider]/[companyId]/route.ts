@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/database/connection';
 import { ssoConfigurations } from '@/lib/database/schema';
 import { eq, and } from 'drizzle-orm';
+import { sessionManager } from '@/lib/redis';
 import crypto from 'crypto';
 
 // GET - OAuth Authorization endpoint
@@ -54,17 +55,10 @@ export async function GET(
       authUrl.searchParams.set('response_mode', 'query');
     }
 
-    // Store state in session/cookie for validation (in production, use Redis or database)
-    const response = NextResponse.redirect(authUrl.toString());
-    response.cookies.set(`oauth_state_${companyId}`, state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600, // 10 minutes
-      path: '/',
-    });
+    // Store state in Redis for validation (secure and scalable)
+    await sessionManager.storeOAuthState(companyId, state, provider);
 
-    return response;
+    return NextResponse.redirect(authUrl.toString());
   } catch (error) {
     console.error('Error in OAuth authorization:', error);
     return NextResponse.redirect(

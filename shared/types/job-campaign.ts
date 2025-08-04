@@ -205,7 +205,7 @@ export type JobCampaignAction =
   | { type: 'RESET_JOB_DETAILS' }
   | { type: 'UPDATE_SCORING_PARAMETERS'; payload: Partial<ScoringParameters> }
   | { type: 'UPDATE_ROUND'; payload: { roundId: string; field: keyof InterviewRound; value: any } }
-  | { type: 'ADD_ROUND' }
+  | { type: 'ADD_ROUND'; payload?: { type?: 'behavioral' | 'mcq' | 'coding' | 'combo' } }
   | { type: 'REMOVE_ROUND'; payload: string }
   | { type: 'SET_NUMBER_OF_ROUNDS'; payload: number }
   | { type: 'TOGGLE_ROUND_ENABLED'; payload: string }

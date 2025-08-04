@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { skillTemplates, interviewTemplates, jobDescriptionTemplates } from '@/lib/database/schema';
-import { eq, and, or, ilike, sql } from 'drizzle-orm';
+import { eq, and, or, desc, asc, ilike, count, sql } from 'drizzle-orm';
+import { validateCompanyId } from '@/lib/api/utils';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSessionWithAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
 
     const { searchParams } = new URL(request.url);
@@ -22,7 +28,7 @@ export async function GET(request: NextRequest) {
     const buildWhereCondition = (table: any) => {
       let conditions = [
         or(
-          eq(table.companyId, session.user.companyId),
+          eq(table.companyId, companyValidation.companyId),
           eq(table.isPublic, true),
           eq(table.createdBy, session.user.id)
         )
@@ -145,6 +151,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
+    }
+
     const body = await request.json();
     const { 
       name, 
@@ -191,7 +202,7 @@ export async function POST(request: NextRequest) {
         metadata,
         usageCount: 0,
         createdBy: session.user.id,
-        companyId: session.user.companyId,
+        companyId: companyValidation.companyId,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning();
@@ -218,7 +229,7 @@ export async function POST(request: NextRequest) {
         metadata,
         usageCount: 0,
         createdBy: session.user.id,
-        companyId: session.user.companyId,
+        companyId: companyValidation.companyId,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning();
@@ -240,7 +251,7 @@ export async function POST(request: NextRequest) {
         metadata,
         usageCount: 0,
         createdBy: session.user.id,
-        companyId: session.user.companyId,
+        companyId: companyValidation.companyId,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning();
@@ -268,11 +279,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSessionWithAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
 
     const body = await request.json();
@@ -319,7 +335,7 @@ export async function PUT(request: NextRequest) {
             eq(skillTemplates.id, id),
             or(
               eq(skillTemplates.createdBy, session.user.id),
-              eq(skillTemplates.companyId, session.user.companyId)
+              eq(skillTemplates.companyId, companyValidation.companyId)
             )
           )
         )
@@ -365,7 +381,7 @@ export async function PUT(request: NextRequest) {
             eq(interviewTemplates.id, id),
             or(
               eq(interviewTemplates.createdBy, session.user.id),
-              eq(interviewTemplates.companyId, session.user.companyId)
+              eq(interviewTemplates.companyId, companyValidation.companyId)
             )
           )
         )
@@ -410,7 +426,7 @@ export async function PUT(request: NextRequest) {
             eq(jobDescriptionTemplates.id, id),
             or(
               eq(jobDescriptionTemplates.createdBy, session.user.id),
-              eq(jobDescriptionTemplates.companyId, session.user.companyId)
+              eq(jobDescriptionTemplates.companyId, companyValidation.companyId)
             )
           )
         )
@@ -468,6 +484,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const type = searchParams.get('type');
@@ -498,7 +519,7 @@ export async function DELETE(request: NextRequest) {
             eq(skillTemplates.id, id),
             or(
               eq(skillTemplates.createdBy, session.user.id),
-              eq(skillTemplates.companyId, session.user.companyId)
+              eq(skillTemplates.companyId, companyValidation.companyId)
             )
           )
         )
@@ -522,7 +543,7 @@ export async function DELETE(request: NextRequest) {
             eq(interviewTemplates.id, id),
             or(
               eq(interviewTemplates.createdBy, session.user.id),
-              eq(interviewTemplates.companyId, session.user.companyId)
+              eq(interviewTemplates.companyId, companyValidation.companyId)
             )
           )
         )
@@ -546,7 +567,7 @@ export async function DELETE(request: NextRequest) {
             eq(jobDescriptionTemplates.id, id),
             or(
               eq(jobDescriptionTemplates.createdBy, session.user.id),
-              eq(jobDescriptionTemplates.companyId, session.user.companyId)
+              eq(jobDescriptionTemplates.companyId, companyValidation.companyId)
             )
           )
         )

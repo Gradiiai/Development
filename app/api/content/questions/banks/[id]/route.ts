@@ -3,6 +3,7 @@ import { getServerSessionWithAuth } from '@/auth';
 import { db } from '@/lib/database/connection';
 import { questionCollections, questions } from '@/lib/database/schema';
 import { eq, and, desc, ilike, or, isNull } from 'drizzle-orm';
+import { validateCompanyId } from '@/lib/api/utils';
 // Dependency checking removed - using database foreign keys instead
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -14,11 +15,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
     const params = await context.params;
     const bankId = params.id;
-    const companyId = session.user.companyId;
-
-    if (!companyId) {
-      return NextResponse.json({ success: true, data: { bank: null, questions: [] } });
+    
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
+    const companyId = companyValidation.companyId;
 
     const [collection] = await db
       .select()
@@ -77,7 +79,12 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     const body = await req.json();
     const params = await context.params;
     const bankId = params.id;
-    const companyId = session.user.companyId;
+    
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
+    }
+    const companyId = companyValidation.companyId;
 
     if (!body.name || !body.category) {
       return NextResponse.json({ success: false, error: 'Name and category are required' }, { status: 400 });
@@ -121,11 +128,12 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
     const params = await context.params;
     const bankId = params.id;
-    const companyId = session.user.companyId;
-
-    if (!companyId) {
-      return NextResponse.json({ success: false, error: 'Company ID not found' }, { status: 400 });
+    
+    const companyValidation = validateCompanyId(session.user.companyId);
+    if (!companyValidation.success) {
+      return companyValidation.response;
     }
+    const companyId = companyValidation.companyId;
 
     // Simple deletion - database foreign keys will prevent issues
 

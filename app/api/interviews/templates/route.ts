@@ -20,6 +20,13 @@ export async function GET(req: NextRequest) {
     // Get templates from database for the company
     const companyId = session.user.companyId;
     
+    if (!companyId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Company ID is required'
+      }, { status: 400 });
+    }
+    
     // Directly query the database for templates
     const templates = await db.select()
       .from(interviewTemplates)
@@ -191,9 +198,18 @@ export async function POST(req: NextRequest) {
       }
     }
     
+    // Validate companyId
+    const companyId = session.user.companyId;
+    if (!companyId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Company ID is required'
+      }, { status: 400 });
+    }
+
     // Create the template directly in the database
     const templateData = {
-      companyId: session.user.companyId || '',
+      companyId,
       createdBy: session.user.id || '',
       templateName: body.templateName,
       description: body.description,
