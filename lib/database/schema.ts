@@ -644,6 +644,28 @@ export const applicationStatusHistory = pgTable("application_status_history", {
   metadata: jsonb("metadata"),
 });
 
+// Interview Recordings
+export const interviewRecordings = pgTable("interview_recordings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  candidateId: uuid("candidate_id").notNull().references(() => candidates.id, { onDelete: "cascade" }),
+  interviewId: uuid("interview_id").references(() => campaignInterviews.id, { onDelete: "cascade" }),
+  questionId: varchar("question_id", { length: 255 }), // For specific question recordings
+  questionIndex: integer("question_index"), // Question number in the interview
+  azureUrl: varchar("azure_url", { length: 1000 }).notNull(), // Azure Blob Storage URL
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  originalFileName: varchar("original_file_name", { length: 255 }),
+  fileSize: integer("file_size"), // in bytes
+  duration: integer("duration"), // in seconds
+  recordingType: varchar("recording_type", { length: 50 }).default("video").notNull(), // video, audio
+  mimeType: varchar("mime_type", { length: 100 }).default("video/webm"),
+  status: varchar("status", { length: 50 }).default("completed").notNull(), // recording, completed, failed, deleted
+  transcription: text("transcription"), // AI-generated transcription
+  metadata: jsonb("metadata"), // Additional recording metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"), // Soft delete
+});
+
 // Company Branding removed as per requirements
 
 // Azure Storage Configuration
