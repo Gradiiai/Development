@@ -8,6 +8,7 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: "Gradii | AI-Powered Interview Platform",
   description: "An AI-powered platform for HR professionals to conduct and manage candidate interviews efficiently.",
   icons: {

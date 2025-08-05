@@ -136,17 +136,17 @@ const [candidates, setCandidates] = useState([]);
 
   const handleCreateNew = () => {
     // Clear any existing campaign data
-    localStorage.removeItem('currentJobCampaignId');
+            // Campaign removed, storage will be updated via Redis
     router.push('/dashboard/job-campaign/job-details');
   };
 
   const handleViewCampaign = (campaignId: string) => {
-    localStorage.setItem('currentJobCampaignId', campaignId);
+    // Storage will be handled by job campaign store via Redis
     router.push('/dashboard/job-campaign/job-details');
   };
 
   const handleEditCampaign = (campaignId: string) => {
-    localStorage.setItem('currentJobCampaignId', campaignId);
+    // Storage will be handled by job campaign store via Redis
     router.push('/dashboard/job-campaign/job-details');
   };
 

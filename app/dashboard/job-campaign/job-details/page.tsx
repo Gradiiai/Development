@@ -149,6 +149,8 @@ export default function JobDetailsStep() {
     setCurrentStep,
     setLoading,
     setError,
+    resetCampaign,
+    saveToStorage,
     isFormValid
   } = useJobCampaignStore();
   
@@ -467,7 +469,8 @@ function formatDateInput(dateString: string | null): string {
   // Load existing campaign data if editing
   useEffect(() => {
     const loadCampaignData = async () => {
-      const campaignId = localStorage.getItem('currentJobCampaignId');
+      // Campaign data is now loaded automatically via Redis in the job campaign store
+      const campaignId = state.campaignId;
       
       if (!campaignId) {
         // No campaign ID means we're creating a new campaign
@@ -548,13 +551,13 @@ function formatDateInput(dateString: string | null): string {
           } else {
             console.error('Failed to load campaign data');
             toast.error('Failed to load campaign data');
-            // Clear invalid campaign ID
-            localStorage.removeItem('currentJobCampaignId');
+            // Clear invalid campaign ID - handled by Redis store
+            resetCampaign();
           }
         } catch (error) {
           console.error('Error loading campaign data:', error);
           toast.error('Error loading campaign data');
-          localStorage.removeItem('currentJobCampaignId');
+          resetCampaign(); // Clear campaign data via Redis store
         } finally {
           setLoading(false);
         }
@@ -736,22 +739,13 @@ function formatDateInput(dateString: string | null): string {
   };
 
   const saveDraft = () => {
-    localStorage.setItem('jobCampaignDraft', JSON.stringify(state.jobDetails));
+    // Draft is automatically saved via Redis storage in the job campaign store
+    saveToStorage();
     toast.success('Draft saved successfully!');
   };
 
-  // Load draft data on component mount
-  useEffect(() => {
-    const savedDraft = localStorage.getItem('jobCampaignDraft');
-    if (savedDraft) {
-      try {
-        const draftData = JSON.parse(savedDraft);
-        updateJobDetails(draftData);
-      } catch (error) {
-        console.error('Failed to load draft:', error);
-      }
-    }
-  }, []);
+  // Draft data is now automatically loaded via Redis in the job campaign store
+  // No need for manual draft loading as it's handled by the JobCampaignProvider
 
 
 

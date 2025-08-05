@@ -22,7 +22,14 @@ export interface JobCampaignSession {
 }
 
 export class RedisSessionManager {
-  private redis = getRedisClient();
+  private _redis: any = null;
+  
+  private get redis() {
+    if (!this._redis) {
+      this._redis = getRedisClient();
+    }
+    return this._redis;
+  }
   private readonly SESSION_PREFIX = 'session:';
   private readonly JOB_CAMPAIGN_PREFIX = 'job_campaign:';
   private readonly OAUTH_STATE_PREFIX = 'oauth_state:';

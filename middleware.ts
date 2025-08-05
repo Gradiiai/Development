@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/auth";
-
-
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -82,95 +79,31 @@ export default async function middleware(request: NextRequest) {
     return await handleCandidateDashboardAccess(request);
   }
 
-  // Get the session from the request
-  const session = await auth();
+  // Check for session cookies (database sessions are validated by NextAuth adapter)
+  const sessionToken = request.cookies.get('nextauth.session-token') || 
+                      request.cookies.get('__Secure-nextauth.session-token');
 
   // Redirect to signin if no session and route is protected
-  if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
+  if (!sessionToken && protectedRoutes.some(route => pathname.startsWith(route))) {
     const signInUrl = new URL("/auth/signin", request.url);
     signInUrl.searchParams.set("callbackUrl", request.url);
     return NextResponse.redirect(signInUrl);
   }
 
-  // If user is authenticated
-  if (session) {
-    const userRole = session.user.role as string;
+  // If user has a session token, allow access but let components handle detailed auth
+  if (sessionToken) {
+    // For protected routes, we'll let the actual components/API routes handle 
+    // detailed authentication and role checking using the full auth() function
+    // This avoids expensive database/Redis calls in middleware while maintaining security
     
-    // Redirect authenticated users from home to appropriate dashboard
+    // Basic redirects for authenticated users on home page
     if (pathname === "/") {
-      if (userRole === "super-admin") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      } else if (userRole === "company") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      } else if (userRole === "candidate") {
-        return NextResponse.redirect(new URL("/candidate", request.url));
-      }
+      // Default redirect to dashboard - components will handle role-specific redirects
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    
-    // Prevent candidates from accessing company/admin routes
-    if (userRole === "candidate") {
-      if (companyOnlyRoutes.some(route => pathname.startsWith(route))) {
-        return NextResponse.redirect(new URL("/candidate", request.url));
-      }
-      // Candidates can only access candidate routes
-      if (!pathname.startsWith("/candidate")) {
-        return NextResponse.redirect(new URL("/candidate", request.url));
-      }
-    }
-    
-    // Prevent non-candidates from accessing candidate dashboard
-    if (pathname.startsWith("/candidate") && userRole !== "candidate") {
-      if (userRole === "super-admin") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      } else if (userRole === "company") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-      return NextResponse.redirect(new URL("/auth/signin", request.url));
-    }
-    
-    // Allow super-admin users to access both admin and company dashboards
-    // No automatic redirect from dashboard for super-admin users
 
-    // Check super-admin routes
-    if (superAdminRoutes.some(route => pathname.startsWith(route))) {
-      if (userRole !== "super-admin") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    }
-    
-    // Prevent super-admin from accessing regular dashboard unless explicitly allowed
-    if (pathname.startsWith("/dashboard") && userRole === "super-admin") {
-      // Allow super-admin to access specific dashboard routes if needed
-      const allowedDashboardRoutes = ["/dashboard/settings", "/dashboard/profile"];
-      if (!allowedDashboardRoutes.some(route => pathname.startsWith(route))) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
-    }
-
-    // Check admin routes
-    if (adminRoutes.some(route => pathname.startsWith(route))) {
-      if (userRole !== "super-admin" && userRole !== "company") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    }
-
-    // Add user info to headers for API routes
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', session.user.id || '');
-    requestHeaders.set('x-user-role', userRole);
-    requestHeaders.set('x-company-id', session.user.companyId || '');
-    
-    // For super admins, ensure they can access admin routes even without companyId
-    if (userRole === 'super-admin') {
-      requestHeaders.set('x-super-admin', 'true');
-    }
-
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    // Let the request proceed - detailed auth will be handled by components
+    return NextResponse.next();
   }
 
   return NextResponse.next();

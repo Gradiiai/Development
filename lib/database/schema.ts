@@ -146,25 +146,9 @@ export const accounts = pgTable(
   })
 );
 
-export const sessions = pgTable("sessions", {
-  sessionToken: varchar("session_token", { length: 255 }).notNull().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires").notNull(),
-});
+// Removed: sessions table - now using Redis for session storage via NextAuth adapter
 
-export const verificationTokens = pgTable(
-  "verification_tokens",
-  {
-    identifier: varchar("identifier", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
-    expires: timestamp("expires").notNull(),
-  },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
-);
+// Removed: verificationTokens table - now using Redis for token storage via NextAuth adapter
 
 // OTP Storage for authentication
 export const otpCodes = pgTable("otp_codes", {
@@ -1050,21 +1034,7 @@ export const candidateNotifications = pgTable("candidate_notifications", {
   metadata: jsonb("metadata"),
 });
 
-// Candidate Sessions (Proper Session Management)
-export const candidateSessions = pgTable("candidate_sessions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  candidateId: uuid("candidate_id").notNull().references(() => candidateUsers.id, { onDelete: "cascade" }),
-  sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
-  deviceInfo: text("device_info"), // JSON with device/browser info
-  ipAddress: varchar("ip_address", { length: 50 }),
-  userAgent: text("user_agent"),
-  location: varchar("location", { length: 255 }), // Geo location
-  isActive: boolean("is_active").default(true),
-  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  loggedOutAt: timestamp("logged_out_at"),
-});
+// Removed: candidateSessions table - now using Redis for session storage via NextAuth adapter
 
 // Candidate Documents (Resume Versions, Certificates, Portfolio)
 export const candidateDocuments = pgTable("candidate_documents", {

@@ -1,10 +1,9 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { RedisAdapter } from "@/lib/auth/redis-adapter";
 
-
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/lib/database/connection";
-import { users, accounts, sessions, verificationTokens, companies } from "@/lib/database/schema";
+import { users, companies } from "@/lib/database/schema";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
@@ -47,46 +46,12 @@ declare module "@auth/core/adapters" {
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
+  // No adapter - using JWT strategy for credentials-based authentication
+  // Redis is used separately for caching and storage via our custom storage APIs
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // JWT strategy required for CredentialsProvider
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  cookies: {
-    sessionToken: {
-      name: `company-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-    callbackUrl: {
-      name: `company-auth.callback-url`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-    csrfToken: {
-      name: `company-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
-  useSecureCookies: process.env.NODE_ENV === 'production',
   trustHost: true, // Add this for NextAuth v5
   debug: process.env.NODE_ENV === 'development', // Enable debug mode in development
   logger: {
@@ -199,18 +164,20 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // If user is available (first sign in), add user data to token
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
       }
       return token;
     },
     async session({ session, token }) {
+      // Add user data from token to session
       if (token) {
-        session.user.id = token.sub as string;
+        session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.companyId = token.companyId as string | null;
-        session.user.image = token.picture as string;
+        session.user.companyId = token.companyId as string;
       }
       return session;
     },

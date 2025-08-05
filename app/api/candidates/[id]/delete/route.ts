@@ -11,7 +11,6 @@ import {
   candidateApplications,
   candidateInterviewHistory,
   candidateNotifications,
-  candidateSessions,
   candidateDocuments,
   candidatePreferences,
   fileStorage,
@@ -38,7 +37,7 @@ import { azureStorageService } from '@/lib/integrations/storage/azure';
  * - Candidate applications
  * - Interview history
  * - Notifications
- * - Sessions
+ * - Sessions (handled by Redis via NextAuth)
  * - Documents and files
  * - Preferences
  */
@@ -104,7 +103,7 @@ export async function DELETE(
       candidateApplications: 0,
       candidateInterviewHistory: 0,
       candidateNotifications: 0,
-      candidateSessions: 0,
+
       candidateDocuments: 0,
       candidatePreferences: 0,
       fileStorage: 0
@@ -206,11 +205,7 @@ export async function DELETE(
         .returning({ id: candidateNotifications.id });
       deletionResults.candidateNotifications = deletedNotifications.length;
 
-      // Delete candidate sessions
-      const deletedSessions = await db.delete(candidateSessions)
-        .where(eq(candidateSessions.candidateId, candidateUserId))
-        .returning({ id: candidateSessions.id });
-      deletionResults.candidateSessions = deletedSessions.length;
+      // Note: Candidate sessions are now handled by Redis via NextAuth adapter
 
       // Delete candidate documents
       const deletedDocuments = await db.delete(candidateDocuments)

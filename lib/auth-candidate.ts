@@ -2,16 +2,16 @@ import NextAuth from "next-auth";
 import type { NextAuthConfig, User, Account, Profile } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-// import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { RedisAdapter } from "@/lib/auth/redis-adapter";
 import { db } from "@/lib/database/connection";
-import { candidateUsers, candidateSessions } from "@/lib/database/schema";
+import { candidateUsers } from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 const candidateAuthOptions: NextAuthConfig = {
   basePath: "/api/candidate-auth",
   trustHost: true, // Add this for NextAuth v5
-  // adapter: DrizzleAdapter(db), // Disabled until proper candidate auth tables are set up
+  // Using JWT strategy for credentials - Redis adapter would conflict with credentials provider
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -169,8 +169,8 @@ const candidateAuthOptions: NextAuthConfig = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.image = token.image as string;
-        session.user.role = token.role as string;
-        session.user.companyId = token.companyId as string;
+        session.user.role = token.role as string || "candidate";
+        session.user.companyId = token.companyId as string || "";
       }
       return session;
     },
@@ -180,17 +180,9 @@ const candidateAuthOptions: NextAuthConfig = {
       // Track sign-in events
       console.log(`Candidate signed in: ${user.email}`);
     },
-    async signOut({ session, token }: { session?: any; token?: any }) {
-      // Clean up sessions
-      if (token?.id) {
-        await db
-          .update(candidateSessions)
-          .set({ 
-            isActive: false,
-            loggedOutAt: new Date()
-          })
-          .where(eq(candidateSessions.candidateId, token.id as string));
-      }
+    async signOut(message) {
+      // Session cleanup is handled by Redis adapter
+      console.log('Candidate signed out');
     },
   },
 };

@@ -7,7 +7,14 @@ export interface CacheOptions {
 }
 
 export class RedisCache {
-  private redis = getRedisClient();
+  private _redis: any = null;
+  
+  private get redis() {
+    if (!this._redis) {
+      this._redis = getRedisClient();
+    }
+    return this._redis;
+  }
   private readonly DEFAULT_TTL = 60 * 60; // 1 hour
   private readonly DEFAULT_PREFIX = 'cache:';
 
@@ -93,6 +100,14 @@ export class RedisCache {
   }
 
   /**
+   * Delete a value from cache (alias for del)
+   */
+  async delete(key: string, options: { prefix?: string } = {}): Promise<boolean> {
+    const { prefix = this.DEFAULT_PREFIX } = options;
+    return this.del(key, prefix);
+  }
+
+  /**
    * Check if key exists in cache
    */
   async exists(key: string, prefix: string = this.DEFAULT_PREFIX): Promise<boolean> {
@@ -153,7 +168,7 @@ export class RedisCache {
       const fullKeys = keys.map(key => `${prefix}${key}`);
       const values = await this.redis.mget(...fullKeys);
 
-      return values.map(value => {
+      return values.map((value: string | null) => {
         if (value === null) return null;
         
         if (serialize) {
@@ -285,7 +300,7 @@ export class RedisCache {
     try {
       const fullPattern = `${prefix}${pattern}`;
       const keys = await this.redis.keys(fullPattern);
-      return keys.map(key => key.replace(prefix, ''));
+      return keys.map((key: string) => key.replace(prefix, ''));
     } catch (error) {
       console.error('Cache keys error:', error);
       return [];

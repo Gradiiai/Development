@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { useRedisStorage } from '@/shared/hooks/useRedisStorage';
 import {
   JobDetailsForm,
   InterviewRound,
@@ -246,48 +247,40 @@ const JobCampaignContext = createContext<JobCampaignContextType | undefined>(und
 export function JobCampaignProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(jobCampaignReducer, initialState);
 
-  // Load from localStorage on mount
+  // Use Redis storage for job campaign data
+  const [redisState, setRedisState, isRedisLoading] = useRedisStorage<Partial<JobCampaignState>>(
+    'job-campaign-storage',
+    {},
+    { ttl: 7 * 24 * 60 * 60 } // 7 days TTL
+  );
+
+  // Load from Redis on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('job-campaign-storage');
-      if (stored) {
-        try {
-          const parsedData = JSON.parse(stored);
-          dispatch({ type: 'LOAD_FROM_STORAGE', payload: parsedData });
-        } catch (error) {
-          console.error('Error loading job campaign data from storage:', error);
-          dispatch({ type: 'SET_ERROR', payload: 'Failed to load saved data' });
-        }
+    if (!isRedisLoading && redisState && Object.keys(redisState).length > 0) {
+      if (redisState.campaignId || redisState.jobDetails || redisState.scoringParameters) {
+        dispatch({ type: 'LOAD_FROM_STORAGE', payload: redisState });
       }
     }
-  }, []);
+  }, [redisState, isRedisLoading]);
 
-  // Save to localStorage whenever state changes (debounced)
+  // Save to Redis whenever state changes (debounced)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const timeoutId = setTimeout(() => {
-        try {
-          const dataToStore = {
-            campaignId: state.campaignId,
-            jobDetails: state.jobDetails,
-            scoringParameters: state.scoringParameters,
-            currentStep: state.currentStep,
-          };
-          localStorage.setItem('job-campaign-storage', JSON.stringify(dataToStore));
-          
-          // Also maintain backward compatibility with existing localStorage usage
-          if (state.campaignId) {
-            localStorage.setItem('currentJobCampaignId', state.campaignId);
-          }
-        } catch (error) {
-          console.error('Failed to save state to localStorage:', error);
-          dispatch({ type: 'SET_ERROR', payload: 'Failed to save data' });
-        }
-      }, 500);
+    const timeoutId = setTimeout(() => {
+      const dataToStore: Partial<JobCampaignState> = {
+        campaignId: state.campaignId,
+        jobDetails: state.jobDetails,
+        scoringParameters: state.scoringParameters,
+        currentStep: state.currentStep,
+      };
+      
+      // Only save if there's meaningful data
+      if (dataToStore.campaignId || dataToStore.jobDetails || dataToStore.scoringParameters) {
+        setRedisState(dataToStore);
+      }
+    }, 500);
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [state]);
+    return () => clearTimeout(timeoutId);
+  }, [state, setRedisState]);
 
   // Action creators
   const setCurrentStep = (step: number) => {
@@ -349,35 +342,19 @@ export function JobCampaignProvider({ children }: { children: ReactNode }) {
   };
 
   const saveToStorage = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        const dataToStore = {
-          campaignId: state.campaignId,
-          jobDetails: state.jobDetails,
-          scoringParameters: state.scoringParameters,
-          currentStep: state.currentStep,
-        };
-        localStorage.setItem('job-campaign-storage', JSON.stringify(dataToStore));
-      } catch (error) {
-        console.error('Failed to save state to localStorage:', error);
-        setError('Failed to save data');
-      }
-    }
+    // This is now handled by the Redis storage hook
+    const dataToStore: Partial<JobCampaignState> = {
+      campaignId: state.campaignId,
+      jobDetails: state.jobDetails,
+      scoringParameters: state.scoringParameters,
+      currentStep: state.currentStep,
+    };
+    setRedisState(dataToStore);
   };
 
   const loadFromStorage = () => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('job-campaign-storage');
-      if (stored) {
-        try {
-          const parsedData = JSON.parse(stored);
-          dispatch({ type: 'LOAD_FROM_STORAGE', payload: parsedData });
-        } catch (error) {
-          console.error('Failed to load state from localStorage:', error);
-          setError('Failed to load saved data');
-        }
-      }
-    }
+    // This is now handled automatically by the Redis storage hook
+    // Data is loaded when the component mounts
   };
 
   // Computed properties

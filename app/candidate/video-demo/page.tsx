@@ -2,7 +2,12 @@
 
 import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import VideoRecorder from '@/components/candidate/video-recorder';
+import dynamic from 'next/dynamic';
+
+const VideoRecorder = dynamic(() => import('@/components/candidate/video-recorder'), {
+  ssr: false,
+  loading: () => <div>Loading video recorder...</div>
+});
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shared/card';
 import { Badge } from '@/components/ui/shared/badge';
 import { Button } from '@/components/ui/shared/button';

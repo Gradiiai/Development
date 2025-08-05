@@ -17,7 +17,14 @@ export interface RateLimitResult {
 }
 
 export class RedisRateLimiter {
-  private redis = getRedisClient();
+  private _redis: any = null;
+  
+  private get redis() {
+    if (!this._redis) {
+      this._redis = getRedisClient();
+    }
+    return this._redis;
+  }
   private readonly RATE_LIMIT_PREFIX = 'rate_limit:';
 
   /**

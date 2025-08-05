@@ -155,40 +155,21 @@ export function useAsyncOperation<T>() {
   return { ...state, execute, cancel };
 }
 
-// Hook for local storage with SSR safety
+// Hook for local storage with SSR safety - now uses Redis backend
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
-      return initialValue;
-    }
+  // Import Redis storage hook dynamically to avoid SSR issues
+  const { useRedisStorage } = require('../hooks/useRedisStorage');
+  
+  // Use Redis storage with a reasonable TTL
+  const [value, setValue, isLoading] = useRedisStorage(key, initialValue, {
+    ttl: 7 * 24 * 60 * 60, // 7 days TTL
   });
 
-  const setValue = useCallback(
-    (value: T | ((val: T) => T)) => {
-      try {
-        const valueToStore = value instanceof Function ? value(storedValue) : value;
-        setStoredValue(valueToStore);
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        }
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
-      }
-    },
-    [key, storedValue]
-  );
-
-  return [storedValue, setValue];
+  // Return loading state as the initial value while Redis is loading
+  return [isLoading ? initialValue : value, setValue];
 }
 
 // Hook for window size with debouncing
