@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import debounce from 'lodash/debounce';
 
 // Hook for Redis storage with user-scoped keys
 export function useRedisStorage<T>(
@@ -50,25 +51,48 @@ export function useRedisStorage<T>(
     loadValue();
   }, [redisKey, session, global]);
 
-  const setRedisValue = useCallback(
-    async (newValue: T | ((val: T) => T)) => {
+  // Debounced function to save value to Redis
+  const saveToRedisRef = useRef(
+    debounce(async (key: string, valueToStore: any) => {
       try {
-        const valueToStore = newValue instanceof Function ? newValue(value) : newValue;
-        setValue(valueToStore);
-
-        // Save to Redis
         await fetch('/api/storage/set', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key: redisKey,
-            value: valueToStore,
-            ttl,
-          }),
+          body: JSON.stringify({ key, value: valueToStore, ttl }),
         });
       } catch (error) {
-        console.warn(`Error setting Redis key "${redisKey}":`, error);
+        console.warn(`Error setting Redis key "${key}":`, error);
       }
+    }, 500)
+  );
+
+  // Cleanup on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      saveToRedisRef.current.cancel();
+    };
+  }, []);
+
+  const setRedisValue = useCallback(
+    async (newValue: T | ((val: T) => T)) => {
+      const computedValue = newValue instanceof Function ? newValue(value) : newValue;
+
+      // Skip write if value hasn't changed (shallow/deep equality check)
+      try {
+        if (typeof computedValue === 'object') {
+          if (JSON.stringify(computedValue) === JSON.stringify(value)) {
+            return;
+          }
+        } else if (computedValue === value) {
+          return;
+        }
+      } catch {
+        // If stringify fails, proceed with write
+      }
+
+      setValue(computedValue);
+      // Debounced save
+      saveToRedisRef.current(redisKey, computedValue);
     },
     [redisKey, value, ttl]
   );

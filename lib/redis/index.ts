@@ -1,5 +1,19 @@
 // Redis connection and utilities
-export { getRedisClient, checkRedisHealth, closeRedisConnection } from './connection';
+export { 
+  getRedisClient, 
+  checkRedisHealth, 
+  closeRedisConnection,
+  getRedisStatus,
+  forceReconnect 
+} from './connection';
+
+// Redis monitoring
+export { 
+  RedisMonitor, 
+  redisMonitor,
+  createRedisHealthCheck,
+  type RedisHealthStatus 
+} from './monitor';
 
 // Session management
 export { 
@@ -26,6 +40,16 @@ export {
   cache,
   type CacheOptions 
 } from './cache';
+
+// Circuit Breaker
+export { 
+  RedisCircuitBreaker,
+  redisCircuitBreaker,
+  executeWithCircuitBreaker,
+  getRedisClientWithCircuitBreaker,
+  CircuitState,
+  type CircuitBreakerConfig
+} from './circuit-breaker';
 
 // Health check for all Redis services
 export async function checkAllRedisServices(): Promise<{

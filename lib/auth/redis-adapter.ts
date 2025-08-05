@@ -1,5 +1,6 @@
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "@auth/core/adapters";
 import { getRedisClient } from "@/lib/redis/connection";
+import { executeWithCircuitBreaker } from "@/lib/redis/circuit-breaker";
 import { v4 as uuidv4 } from "uuid";
 
 export interface RedisAdapterConfig {
@@ -27,14 +28,36 @@ const defaultConfig: Required<RedisAdapterConfig> = {
 export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
   const c = { ...defaultConfig, ...config };
   
-  // Get Redis client with error handling
-  const getRedis = () => {
-    try {
-      return getRedisClient();
-    } catch (error) {
-      console.error('Failed to get Redis client:', error);
-      throw new Error('Redis connection failed');
-    }
+  // Helper function to get Redis client with enhanced error handling and circuit breaker
+  const getRedis = async () => {
+    return executeWithCircuitBreaker(async () => {
+      try {
+        return await getRedisClient();
+      } catch (error) {
+        console.error('Failed to get Redis client for auth adapter:', error);
+        
+        // Handle specific Redis Cloud errors
+        if (error instanceof Error) {
+          if (error.message.includes('max number of clients reached')) {
+            console.error('🚨 Redis client limit reached in auth adapter');
+            throw new Error('Redis client limit exceeded - please retry');
+          }
+          if (error.message.includes('ECONNRESET')) {
+            console.error('🔌 Redis connection reset in auth adapter');
+            throw new Error('Redis connection lost - please retry');
+          }
+          if (error.message.includes('NOAUTH')) {
+            console.error('🔐 Redis authentication failed in auth adapter');
+            throw new Error('Redis authentication failed');
+          }
+        }
+        
+        throw new Error('Redis connection failed');
+      }
+    }, () => {
+      // Fallback for auth operations when Redis is down
+      throw new Error('Redis service temporarily unavailable - authentication disabled');
+    });
   };
 
   const getUserKey = (id: string) => `${c.prefix}${c.userPrefix}${id}`;
@@ -55,7 +78,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const userKey = getUserKey(id);
       const emailKey = getUserByEmailKey(user.email);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.pipeline()
         .setex(userKey, c.userTTL, JSON.stringify(newUser))
         .setex(emailKey, c.userTTL, id)
@@ -66,7 +89,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async getUser(id: string): Promise<AdapterUser | null> {
       const userKey = getUserKey(id);
-      const redis = getRedis();
+      const redis = await getRedis();
       const userData = await redis.get(userKey);
       
       if (!userData) return null;
@@ -80,7 +103,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async getUserByEmail(email: string): Promise<AdapterUser | null> {
       const emailKey = getUserByEmailKey(email);
-      const redis = getRedis();
+      const redis = await getRedis();
       const userId = await redis.get(emailKey);
       
       if (!userId) return null;
@@ -90,7 +113,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async getUserByAccount({ provider, providerAccountId }): Promise<AdapterUser | null> {
       const accountKey = getUserByAccountKey(provider, providerAccountId);
-      const redis = getRedis();
+      const redis = await getRedis();
       const userId = await redis.get(accountKey);
       
       if (!userId) return null;
@@ -105,7 +128,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const updatedUser = { ...existingUser, ...user };
       const userKey = getUserKey(user.id);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.setex(userKey, c.userTTL, JSON.stringify(updatedUser));
       
       return updatedUser;
@@ -118,7 +141,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const userKey = getUserKey(userId);
       const emailKey = getUserByEmailKey(user.email);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.pipeline()
         .del(userKey)
         .del(emailKey)
@@ -129,7 +152,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const accountKey = getAccountKey(account.provider, account.providerAccountId);
       const userAccountKey = getUserByAccountKey(account.provider, account.providerAccountId);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.pipeline()
         .setex(accountKey, c.userTTL, JSON.stringify(account))
         .setex(userAccountKey, c.userTTL, account.userId)
@@ -142,7 +165,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const accountKey = getAccountKey(provider, providerAccountId);
       const userAccountKey = getUserByAccountKey(provider, providerAccountId);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.pipeline()
         .del(accountKey)
         .del(userAccountKey)
@@ -156,7 +179,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
         expires: session.expires,
       };
       
-      const redis = getRedis();
+      const redis = await getRedis();
       const ttl = Math.floor((session.expires.getTime() - Date.now()) / 1000);
       await redis.setex(sessionKey, ttl > 0 ? ttl : c.sessionTTL, JSON.stringify(sessionData));
       
@@ -165,7 +188,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async getSessionAndUser(sessionToken: string): Promise<{ session: AdapterSession; user: AdapterUser } | null> {
       const sessionKey = getSessionKey(sessionToken);
-      const redis = getRedis();
+      const redis = await getRedis();
       const sessionData = await redis.get(sessionKey);
       
       if (!sessionData) return null;
@@ -190,7 +213,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async updateSession(session: Partial<AdapterSession> & Pick<AdapterSession, "sessionToken">): Promise<AdapterSession> {
       const sessionKey = getSessionKey(session.sessionToken);
-      const redis = getRedis();
+      const redis = await getRedis();
       const existingData = await redis.get(sessionKey);
       
       if (!existingData) throw new Error("Session not found");
@@ -210,7 +233,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async deleteSession(sessionToken: string): Promise<void> {
       const sessionKey = getSessionKey(sessionToken);
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.del(sessionKey);
     },
 
@@ -218,7 +241,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
       const tokenKey = getVerificationKey(token.identifier, token.token);
       const ttl = Math.floor((token.expires.getTime() - Date.now()) / 1000);
       
-      const redis = getRedis();
+      const redis = await getRedis();
       await redis.setex(tokenKey, ttl > 0 ? ttl : c.verificationTokenTTL, JSON.stringify(token));
       
       return token;
@@ -226,7 +249,7 @@ export function RedisAdapter(config: RedisAdapterConfig = {}): Adapter {
 
     async useVerificationToken({ identifier, token }): Promise<VerificationToken | null> {
       const tokenKey = getVerificationKey(identifier, token);
-      const redis = getRedis();
+      const redis = await getRedis();
       const tokenData = await redis.get(tokenKey);
       
       if (!tokenData) return null;

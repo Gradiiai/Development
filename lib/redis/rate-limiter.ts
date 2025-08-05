@@ -17,13 +17,8 @@ export interface RateLimitResult {
 }
 
 export class RedisRateLimiter {
-  private _redis: any = null;
-  
-  private get redis() {
-    if (!this._redis) {
-      this._redis = getRedisClient();
-    }
-    return this._redis;
+  private async getRedis() {
+    return await getRedisClient();
   }
   private readonly RATE_LIMIT_PREFIX = 'rate_limit:';
 
@@ -39,8 +34,9 @@ export class RedisRateLimiter {
     const windowStart = now - config.windowMs;
 
     try {
+      const redis = await this.getRedis();
       // Use Redis pipeline for atomic operations
-      const pipeline = this.redis.pipeline();
+      const pipeline = redis.pipeline();
       
       // Remove expired entries
       pipeline.zremrangebyscore(key, 0, windowStart);
@@ -88,8 +84,9 @@ export class RedisRateLimiter {
    */
   async resetRateLimit(identifier: string): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const key = `${this.RATE_LIMIT_PREFIX}${identifier}`;
-      const result = await this.redis.del(key);
+      const result = await redis.del(key);
       return result > 0;
     } catch (error) {
       console.error('Failed to reset rate limit:', error);
@@ -109,9 +106,10 @@ export class RedisRateLimiter {
     const windowStart = now - config.windowMs;
 
     try {
+      const redis = await this.getRedis();
       // Clean up expired entries and count current requests
-      await this.redis.zremrangebyscore(key, 0, windowStart);
-      const currentCount = await this.redis.zcard(key);
+      await redis.zremrangebyscore(key, 0, windowStart);
+      const currentCount = await redis.zcard(key);
       
       const remaining = Math.max(0, config.maxRequests - currentCount);
       const resetTime = now + config.windowMs;
@@ -146,7 +144,8 @@ export class RedisRateLimiter {
     const windowStart = now - config.windowMs;
 
     try {
-      const pipeline = this.redis.pipeline();
+      const redis = await this.getRedis();
+      const pipeline = redis.pipeline();
       
       // Remove expired entries
       pipeline.zremrangebyscore(key, 0, windowStart);
@@ -197,12 +196,13 @@ export class RedisRateLimiter {
     topLimitedIPs: Array<{ ip: string; hits: number }>;
   }> {
     try {
-      const keys = await this.redis.keys(`${this.RATE_LIMIT_PREFIX}*`);
+      const redis = await this.getRedis();
+      const keys = await redis.keys(`${this.RATE_LIMIT_PREFIX}*`);
       const ipStats: Record<string, number> = {};
 
       for (const key of keys) {
         const ip = key.replace(this.RATE_LIMIT_PREFIX, '');
-        const hits = await this.redis.zcard(key);
+        const hits = await redis.zcard(key);
         ipStats[ip] = hits;
       }
 
@@ -229,20 +229,21 @@ export class RedisRateLimiter {
    */
   async cleanupExpiredEntries(): Promise<number> {
     try {
-      const keys = await this.redis.keys(`${this.RATE_LIMIT_PREFIX}*`);
+      const redis = await this.getRedis();
+      const keys = await redis.keys(`${this.RATE_LIMIT_PREFIX}*`);
       let cleanedCount = 0;
 
       for (const key of keys) {
         const now = Date.now();
         const oneHourAgo = now - (60 * 60 * 1000); // Clean entries older than 1 hour
         
-        const removed = await this.redis.zremrangebyscore(key, 0, oneHourAgo);
+        const removed = await redis.zremrangebyscore(key, 0, oneHourAgo);
         cleanedCount += removed;
         
         // Remove empty keys
-        const count = await this.redis.zcard(key);
+        const count = await redis.zcard(key);
         if (count === 0) {
-          await this.redis.del(key);
+          await redis.del(key);
         }
       }
 

@@ -22,13 +22,8 @@ export interface JobCampaignSession {
 }
 
 export class RedisSessionManager {
-  private _redis: any = null;
-  
-  private get redis() {
-    if (!this._redis) {
-      this._redis = getRedisClient();
-    }
-    return this._redis;
+  private async getRedis() {
+    return getRedisClient();
   }
   private readonly SESSION_PREFIX = 'session:';
   private readonly JOB_CAMPAIGN_PREFIX = 'job_campaign:';
@@ -39,6 +34,7 @@ export class RedisSessionManager {
 
   // Session Management
   async createSession(sessionData: SessionData): Promise<string> {
+    const redis = await this.getRedis();
     const sessionId = uuidv4();
     const key = `${this.SESSION_PREFIX}${sessionId}`;
     
@@ -48,10 +44,10 @@ export class RedisSessionManager {
       lastActivity: Date.now(),
     };
 
-    await this.redis.setex(key, this.DEFAULT_TTL, JSON.stringify(data));
+    await redis.setex(key, this.DEFAULT_TTL, JSON.stringify(data));
     
     // Also store user-to-session mapping for quick lookups
-    await this.redis.setex(
+    await redis.setex(
       `user_session:${sessionData.userId}`,
       this.DEFAULT_TTL,
       sessionId
@@ -61,8 +57,9 @@ export class RedisSessionManager {
   }
 
   async getSession(sessionId: string): Promise<SessionData | null> {
+    const redis = await this.getRedis();
     const key = `${this.SESSION_PREFIX}${sessionId}`;
-    const data = await this.redis.get(key);
+    const data = await redis.get(key);
     
     if (!data) return null;
     
@@ -71,7 +68,7 @@ export class RedisSessionManager {
       
       // Update last activity
       sessionData.lastActivity = Date.now();
-      await this.redis.setex(key, this.DEFAULT_TTL, JSON.stringify(sessionData));
+      await redis.setex(key, this.DEFAULT_TTL, JSON.stringify(sessionData));
       
       return sessionData;
     } catch (error) {
@@ -81,8 +78,9 @@ export class RedisSessionManager {
   }
 
   async updateSession(sessionId: string, updates: Partial<SessionData>): Promise<boolean> {
+    const redis = await this.getRedis();
     const key = `${this.SESSION_PREFIX}${sessionId}`;
-    const existingData = await this.redis.get(key);
+    const existingData = await redis.get(key);
     
     if (!existingData) return false;
     
@@ -94,7 +92,7 @@ export class RedisSessionManager {
         lastActivity: Date.now(),
       };
       
-      await this.redis.setex(key, this.DEFAULT_TTL, JSON.stringify(updatedData));
+      await redis.setex(key, this.DEFAULT_TTL, JSON.stringify(updatedData));
       return true;
     } catch (error) {
       console.error('Error updating session:', error);
@@ -103,24 +101,27 @@ export class RedisSessionManager {
   }
 
   async deleteSession(sessionId: string): Promise<boolean> {
+    const redis = await this.getRedis();
     const key = `${this.SESSION_PREFIX}${sessionId}`;
     const sessionData = await this.getSession(sessionId);
     
     if (sessionData) {
       // Remove user-to-session mapping
-      await this.redis.del(`user_session:${sessionData.userId}`);
+      await redis.del(`user_session:${sessionData.userId}`);
     }
     
-    const result = await this.redis.del(key);
+    const result = await redis.del(key);
     return result > 0;
   }
 
   async getUserSession(userId: string): Promise<string | null> {
-    return await this.redis.get(`user_session:${userId}`);
+    const redis = await this.getRedis();
+    return await redis.get(`user_session:${userId}`);
   }
 
   // Job Campaign Session Management
   async saveJobCampaignSession(userId: string, campaignData: JobCampaignSession): Promise<void> {
+    const redis = await this.getRedis();
     const key = `${this.JOB_CAMPAIGN_PREFIX}${userId}`;
     const data = {
       ...campaignData,
@@ -128,12 +129,13 @@ export class RedisSessionManager {
       userId,
     };
 
-    await this.redis.setex(key, this.JOB_CAMPAIGN_TTL, JSON.stringify(data));
+    await redis.setex(key, this.JOB_CAMPAIGN_TTL, JSON.stringify(data));
   }
 
   async getJobCampaignSession(userId: string): Promise<JobCampaignSession | null> {
+    const redis = await this.getRedis();
     const key = `${this.JOB_CAMPAIGN_PREFIX}${userId}`;
-    const data = await this.redis.get(key);
+    const data = await redis.get(key);
     
     if (!data) return null;
     
@@ -146,13 +148,15 @@ export class RedisSessionManager {
   }
 
   async deleteJobCampaignSession(userId: string): Promise<boolean> {
+    const redis = await this.getRedis();
     const key = `${this.JOB_CAMPAIGN_PREFIX}${userId}`;
-    const result = await this.redis.del(key);
+    const result = await redis.del(key);
     return result > 0;
   }
 
   // OAuth State Management
   async storeOAuthState(companyId: string, state: string, provider: string): Promise<void> {
+    const redis = await this.getRedis();
     const key = `${this.OAUTH_STATE_PREFIX}${companyId}:${state}`;
     const data = {
       provider,
@@ -160,12 +164,13 @@ export class RedisSessionManager {
       createdAt: Date.now(),
     };
 
-    await this.redis.setex(key, this.OAUTH_STATE_TTL, JSON.stringify(data));
+    await redis.setex(key, this.OAUTH_STATE_TTL, JSON.stringify(data));
   }
 
   async validateOAuthState(companyId: string, state: string): Promise<{ valid: boolean; provider?: string }> {
+    const redis = await this.getRedis();
     const key = `${this.OAUTH_STATE_PREFIX}${companyId}:${state}`;
-    const data = await this.redis.get(key);
+    const data = await redis.get(key);
     
     if (!data) {
       return { valid: false };
@@ -174,7 +179,7 @@ export class RedisSessionManager {
     try {
       const stateData = JSON.parse(data);
       // Delete the state after validation (one-time use)
-      await this.redis.del(key);
+      await redis.del(key);
       
       return {
         valid: true,
@@ -188,12 +193,13 @@ export class RedisSessionManager {
 
   // Utility methods
   async getAllUserSessions(userId: string): Promise<string[]> {
+    const redis = await this.getRedis();
     const pattern = `${this.SESSION_PREFIX}*`;
-    const keys = await this.redis.keys(pattern);
+    const keys = await redis.keys(pattern);
     const userSessions: string[] = [];
 
     for (const key of keys) {
-      const data = await this.redis.get(key);
+      const data = await redis.get(key);
       if (data) {
         try {
           const sessionData = JSON.parse(data) as SessionData;
@@ -210,15 +216,16 @@ export class RedisSessionManager {
   }
 
   async cleanupExpiredSessions(): Promise<number> {
+    const redis = await this.getRedis();
     const pattern = `${this.SESSION_PREFIX}*`;
-    const keys = await this.redis.keys(pattern);
+    const keys = await redis.keys(pattern);
     let cleanedCount = 0;
 
     for (const key of keys) {
-      const ttl = await this.redis.ttl(key);
+      const ttl = await redis.ttl(key);
       if (ttl === -1) {
         // Key exists but has no expiration, set one
-        await this.redis.expire(key, this.DEFAULT_TTL);
+        await redis.expire(key, this.DEFAULT_TTL);
       } else if (ttl === -2) {
         // Key doesn't exist, skip
         continue;
@@ -234,9 +241,10 @@ export class RedisSessionManager {
     activeSessions: number;
     jobCampaignSessions: number;
   }> {
+    const redis = await this.getRedis();
     const [sessionKeys, jobCampaignKeys] = await Promise.all([
-      this.redis.keys(`${this.SESSION_PREFIX}*`),
-      this.redis.keys(`${this.JOB_CAMPAIGN_PREFIX}*`),
+      redis.keys(`${this.SESSION_PREFIX}*`),
+      redis.keys(`${this.JOB_CAMPAIGN_PREFIX}*`),
     ]);
 
     // Count active sessions (last activity within 1 hour)
@@ -244,7 +252,7 @@ export class RedisSessionManager {
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
 
     for (const key of sessionKeys) {
-      const data = await this.redis.get(key);
+      const data = await redis.get(key);
       if (data) {
         try {
           const sessionData = JSON.parse(data) as SessionData;

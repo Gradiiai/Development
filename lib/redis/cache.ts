@@ -7,13 +7,15 @@ export interface CacheOptions {
 }
 
 export class RedisCache {
-  private _redis: any = null;
-  
-  private get redis() {
-    if (!this._redis) {
-      this._redis = getRedisClient();
+  private async getRedis() {
+    const client = await getRedisClient();
+    
+    // Double-check that the client is ready for operations
+    if (client.status !== 'ready') {
+      throw new Error('Redis client is not ready for operations');
     }
-    return this._redis;
+    
+    return client;
   }
   private readonly DEFAULT_TTL = 60 * 60; // 1 hour
   private readonly DEFAULT_PREFIX = 'cache:';
@@ -27,6 +29,7 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const {
         ttl = this.DEFAULT_TTL,
         prefix = this.DEFAULT_PREFIX,
@@ -37,14 +40,24 @@ export class RedisCache {
       const serializedValue = serialize ? JSON.stringify(value) : String(value);
 
       if (ttl > 0) {
-        await this.redis.setex(fullKey, ttl, serializedValue);
+        await redis.setex(fullKey, ttl, serializedValue);
       } else {
-        await this.redis.set(fullKey, serializedValue);
+        await redis.set(fullKey, serializedValue);
       }
 
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      // Handle specific Redis connection errors
+      if (error instanceof Error) {
+        if (error.message.includes("Stream isn't writeable") || 
+            error.message.includes("enableOfflineQueue options is false")) {
+          console.error('Cache set error: Redis connection not ready, operation rejected');
+        } else {
+          console.error('Cache set error:', error);
+        }
+      } else {
+        console.error('Cache set error:', error);
+      }
       return false;
     }
   }
@@ -57,13 +70,14 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<T | null> {
     try {
+      const redis = await this.getRedis();
       const {
         prefix = this.DEFAULT_PREFIX,
         serialize = true,
       } = options;
 
       const fullKey = `${prefix}${key}`;
-      const value = await this.redis.get(fullKey);
+      const value = await redis.get(fullKey);
 
       if (value === null) {
         return null;
@@ -90,8 +104,9 @@ export class RedisCache {
    */
   async del(key: string, prefix: string = this.DEFAULT_PREFIX): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const fullKey = `${prefix}${key}`;
-      const result = await this.redis.del(fullKey);
+      const result = await redis.del(fullKey);
       return result > 0;
     } catch (error) {
       console.error('Cache delete error:', error);
@@ -112,8 +127,9 @@ export class RedisCache {
    */
   async exists(key: string, prefix: string = this.DEFAULT_PREFIX): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const fullKey = `${prefix}${key}`;
-      const result = await this.redis.exists(fullKey);
+      const result = await redis.exists(fullKey);
       return result > 0;
     } catch (error) {
       console.error('Cache exists error:', error);
@@ -126,8 +142,9 @@ export class RedisCache {
    */
   async ttl(key: string, prefix: string = this.DEFAULT_PREFIX): Promise<number> {
     try {
+      const redis = await this.getRedis();
       const fullKey = `${prefix}${key}`;
-      return await this.redis.ttl(fullKey);
+      return await redis.ttl(fullKey);
     } catch (error) {
       console.error('Cache TTL error:', error);
       return -1;
@@ -143,8 +160,9 @@ export class RedisCache {
     prefix: string = this.DEFAULT_PREFIX
   ): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const fullKey = `${prefix}${key}`;
-      const result = await this.redis.expire(fullKey, ttl);
+      const result = await redis.expire(fullKey, ttl);
       return result > 0;
     } catch (error) {
       console.error('Cache expire error:', error);
@@ -160,13 +178,14 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<(T | null)[]> {
     try {
+      const redis = await this.getRedis();
       const {
         prefix = this.DEFAULT_PREFIX,
         serialize = true,
       } = options;
 
       const fullKeys = keys.map(key => `${prefix}${key}`);
-      const values = await this.redis.mget(...fullKeys);
+      const values = await redis.mget(...fullKeys);
 
       return values.map((value: string | null) => {
         if (value === null) return null;
@@ -196,12 +215,13 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<boolean> {
     try {
+      const redis = await this.getRedis();
       const {
         prefix = this.DEFAULT_PREFIX,
         serialize = true,
       } = options;
 
-      const pipeline = this.redis.pipeline();
+      const pipeline = redis.pipeline();
 
       for (const { key, value, ttl } of keyValuePairs) {
         const fullKey = `${prefix}${key}`;
@@ -232,6 +252,7 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<number> {
     try {
+      const redis = await this.getRedis();
       const {
         ttl = this.DEFAULT_TTL,
         prefix = this.DEFAULT_PREFIX,
@@ -241,14 +262,14 @@ export class RedisCache {
       
       let result: number;
       if (increment === 1) {
-        result = await this.redis.incr(fullKey);
+        result = await redis.incr(fullKey);
       } else {
-        result = await this.redis.incrby(fullKey, increment);
+        result = await redis.incrby(fullKey, increment);
       }
 
       // Set TTL if this is a new key
       if (result === increment && ttl > 0) {
-        await this.redis.expire(fullKey, ttl);
+        await redis.expire(fullKey, ttl);
       }
 
       return result;
@@ -267,6 +288,7 @@ export class RedisCache {
     options: CacheOptions = {}
   ): Promise<number> {
     try {
+      const redis = await this.getRedis();
       const {
         ttl = this.DEFAULT_TTL,
         prefix = this.DEFAULT_PREFIX,
@@ -276,14 +298,14 @@ export class RedisCache {
       
       let result: number;
       if (decrement === 1) {
-        result = await this.redis.decr(fullKey);
+        result = await redis.decr(fullKey);
       } else {
-        result = await this.redis.decrby(fullKey, decrement);
+        result = await redis.decrby(fullKey, decrement);
       }
 
       // Set TTL if this is a new key
       if (result === -decrement && ttl > 0) {
-        await this.redis.expire(fullKey, ttl);
+        await redis.expire(fullKey, ttl);
       }
 
       return result;
@@ -298,8 +320,9 @@ export class RedisCache {
    */
   async keys(pattern: string, prefix: string = this.DEFAULT_PREFIX): Promise<string[]> {
     try {
+      const redis = await this.getRedis();
       const fullPattern = `${prefix}${pattern}`;
-      const keys = await this.redis.keys(fullPattern);
+      const keys = await redis.keys(fullPattern);
       return keys.map((key: string) => key.replace(prefix, ''));
     } catch (error) {
       console.error('Cache keys error:', error);
@@ -312,10 +335,11 @@ export class RedisCache {
    */
   async clear(prefix: string = this.DEFAULT_PREFIX): Promise<number> {
     try {
-      const keys = await this.redis.keys(`${prefix}*`);
+      const redis = await this.getRedis();
+      const keys = await redis.keys(`${prefix}*`);
       if (keys.length === 0) return 0;
       
-      const result = await this.redis.del(...keys);
+      const result = await redis.del(...keys);
       return result;
     } catch (error) {
       console.error('Cache clear error:', error);
@@ -332,8 +356,9 @@ export class RedisCache {
     hitRate?: number;
   }> {
     try {
-      const info = await this.redis.info('memory');
-      const keyspace = await this.redis.info('keyspace');
+      const redis = await this.getRedis();
+      const info = await redis.info('memory');
+      const keyspace = await redis.info('keyspace');
       
       // Parse memory usage
       const memoryMatch = info.match(/used_memory_human:(.+)/);
