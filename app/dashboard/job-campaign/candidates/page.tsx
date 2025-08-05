@@ -65,7 +65,7 @@ interface CandidateInterview {
 
 export default function JobCampaignCandidatesPage() {
   const { data: session } = useSession();
-  const { state } = useJobCampaignStore();
+  const { state, setCampaignId } = useJobCampaignStore();
   const { campaignId, jobDetails } = state;
   
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -105,6 +105,16 @@ export default function JobCampaignCandidatesPage() {
   const [processingAction, setProcessingAction] = useState(false);
   const [interviewSetups, setInterviewSetups] = useState<InterviewSetup[]>([]);
   const [candidateInterviews, setCandidateInterviews] = useState<Record<string, CandidateInterview[]>>({});
+
+  // Load campaign ID from localStorage if not in store
+  useEffect(() => {
+    if (!campaignId) {
+      const storedCampaignId = localStorage.getItem('currentJobCampaignId');
+      if (storedCampaignId) {
+        setCampaignId(storedCampaignId);
+      }
+    }
+  }, [campaignId, setCampaignId]);
 
   useEffect(() => {
     if (campaignId) {
