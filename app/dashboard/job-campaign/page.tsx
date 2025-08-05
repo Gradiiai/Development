@@ -3,30 +3,39 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/shared/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/shared/card";
 import { Button } from "@/components/ui/shared/button";
 import { Badge } from "@/components/ui/shared/badge";
 import { Input } from "@/components/ui/shared/input";
-import { useToast } from '@/shared/hooks/use-toast';
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Users, 
-  Calendar, 
-  MapPin, 
+import { useToast } from "@/shared/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Search,
+  Users,
+  Calendar,
+  MapPin,
   Briefcase,
   Eye,
   Edit,
   Trash2,
-  Building2
+  Building2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+// Interface for job campaign data
 interface JobCampaign {
   id: string;
   campaignName: string;
@@ -35,7 +44,7 @@ interface JobCampaign {
   location: string;
   employmentType: string;
   experienceLevel: string;
-  status: 'draft' | 'active' | 'paused' | 'closed';
+  status: "draft" | "active" | "paused" | "closed";
   createdAt: string;
   candidatesCount?: number;
   interviewsCount?: number;
@@ -50,8 +59,13 @@ interface JobCampaign {
   targetHireDate?: string;
   isRemote?: boolean;
   isHybrid?: boolean;
+  screeningCount?: number;
+  shortlistedCount?: number;
+  interviewedCount?: number;
+  hiredCount?: number;
 }
 
+// Main component for job campaigns page
 export default function JobCampaignsPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -60,130 +74,122 @@ export default function JobCampaignsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
-const [selectedCampaign, setSelectedCampaign] = useState(null);
-const [isModalOpen, setIsModalOpen] = useState(false);
-const [candidates, setCandidates] = useState([]);
   const { toast } = useToast();
 
-
+  // Fetch job campaigns on session change
   useEffect(() => {
     fetchJobCampaigns();
   }, [session]);
 
+  // Fetch job campaigns from API
   const fetchJobCampaigns = async () => {
     try {
       setLoading(true);
       const companyId = session?.user?.companyId;
-      if (!companyId) {
-        setLoading(false);
-        return;
-      }
-      
+      if (!companyId) return;
+
       const response = await fetch(`/api/campaigns/jobs?companyId=${companyId}`);
       if (response.ok) {
         const data = await response.json();
         setCampaigns(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching job campaigns:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchCandidates = async () => {
-    if (!selectedCampaign) return;
-    
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/candidates/profiles?campaignId=${selectedCampaign}`);
-      const data = await response.json();
-      if (data.success) {
-        setCandidates(data.candidates || []);
-      }
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch candidates',
-        variant: 'destructive'
-      });
+      console.error("Error fetching job campaigns:", error);
     } finally {
       setLoading(false);
     }
   };
 
-
+  // Get color classes based on campaign status
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'closed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "draft":
+        return "bg-gray-100 text-gray-800";
+      case "paused":
+        return "bg-yellow-100 text-yellow-800";
+      case "closed":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesSearch = campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
-    const matchesDepartment = departmentFilter === 'all' || campaign.department === departmentFilter;
-    
+  // Filter campaigns based on search and filters
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    const matchesSearch =
+      campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
+    const matchesDepartment = departmentFilter === "all" || campaign.department === departmentFilter;
+
     return matchesSearch && matchesStatus && matchesDepartment;
   });
 
-  const departments = [...new Set(campaigns.map(c => c.department))].filter(Boolean);
+  // Get unique departments for filter
+  const departments = [...new Set(campaigns.map((c) => c.department))].filter(Boolean);
 
+  // Handle creation of new campaign
   const handleCreateNew = () => {
-    // Clear any existing campaign data
-            // Campaign removed, storage will be updated via Redis
-    router.push('/dashboard/job-campaign/job-details');
+    localStorage.removeItem("currentJobCampaignId");
+    router.push("/dashboard/job-campaign/job-details");
   };
 
+  // Navigate to campaign details
   const handleViewCampaign = (campaignId: string) => {
-    // Storage will be handled by job campaign store via Redis
-    router.push('/dashboard/job-campaign/job-details');
+    localStorage.setItem("currentJobCampaignId", campaignId);
+    router.push("/dashboard/job-campaign/job-details");
   };
 
+  // Navigate to edit campaign
   const handleEditCampaign = (campaignId: string) => {
-    // Storage will be handled by job campaign store via Redis
-    router.push('/dashboard/job-campaign/job-details');
+    localStorage.setItem("currentJobCampaignId", campaignId);
+    router.push("/dashboard/job-campaign/job-details");
   };
 
+  // Delete a campaign
   const handleDeleteCampaign = async (campaignId: string) => {
-    if (!confirm('Are you sure you want to delete this job campaign? This action cannot be undone.')) {
+    if (!confirm("Are you sure you want to delete this job campaign? This action cannot be undone.")) {
       return;
     }
 
     try {
       const response = await fetch(`/api/campaigns/jobs/${campaignId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
-        // Remove the campaign from the local state for real-time sync
-        setCampaigns(prevCampaigns => 
-          prevCampaigns.filter(campaign => campaign.id !== campaignId)
-        );
-        
-        // Show success message (you can replace this with a toast notification)
-        alert('Job campaign deleted successfully!');
+        setCampaigns((prevCampaigns) => prevCampaigns.filter((campaign) => campaign.id !== campaignId));
+        toast({
+          title: "Success",
+          description: "Job campaign deleted successfully!",
+        });
       } else {
         const errorData = await response.json();
-        alert(`Error deleting campaign: ${errorData.error}`);
+        toast({
+          title: "Error",
+          description: `Error deleting campaign: ${errorData.error}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error deleting job campaign:', error);
-      alert('An error occurred while deleting the campaign. Please try again.');
+      console.error("Error deleting job campaign:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the campaign. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
+  // Render loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
             <span className="ml-2">Loading job campaigns...</span>
           </div>
         </div>
@@ -192,26 +198,15 @@ const [candidates, setCandidates] = useState([]);
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Job Campaigns</h1>
-              <p className="text-gray-600">Manage your job postings and recruitment campaigns</p>
-            </div>
-            <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Campaign
-            </Button>
+    <div className="min-h-screen">
+      <div className="container mx-auto">
+        {/* Header section */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center justify-between mb-5">
+            <h1 className="text-3xl font-medium text-gray-900">Job Campaigns</h1>
           </div>
 
-          {/* Filters */}
+          {/* Filters section */}
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-4">
@@ -244,42 +239,43 @@ const [candidates, setCandidates] = useState([]);
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <Button onClick={handleCreateNew} className="bg-purple-600 hover:bg-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Campaign
+                </Button>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Campaigns Grid */}
+        {/* Campaigns grid section */}
         {filteredCampaigns.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-12"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
             <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {campaigns.length === 0 ? 'No job campaigns yet' : 'No campaigns match your filters'}
+              {campaigns.length === 0 ? "No job campaigns yet" : "No campaigns match your filters"}
             </h3>
             <p className="text-gray-600 mb-6">
-              {campaigns.length === 0 
-                ? 'Create your first job campaign to start recruiting candidates'
-                : 'Try adjusting your search or filter criteria'
-              }
+              {campaigns.length === 0
+                ? "Create your first job campaign to start recruiting candidates"
+                : "Try adjusting your search or filter criteria"}
             </p>
             {campaigns.length === 0 && (
-              <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleCreateNew} className="bg-purple-600 hover:bg-purple-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Your First Campaign
               </Button>
             )}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex-col items-center">
             {filteredCampaigns.map((campaign, index) => (
               <motion.div
                 key={campaign.id}
@@ -287,89 +283,103 @@ const [candidates, setCandidates] = useState([]);
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card
-                  className="hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
-                  onClick={() => handleViewCampaign(campaign.id)}
-                >       
-                           <CardHeader className="pb-3">
+                <Card className="cursor-pointer group mb-3" onClick={() => handleViewCampaign(campaign.id)}>
+                  <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {campaign.campaignName}
-                        </CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">{campaign.jobTitle}</p>
-                      </div>
-                      <Badge className={`${getStatusColor(campaign.status)} border-0`}>
-                        {campaign.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Building2 className="w-4 h-4 mr-2" />
-                        {campaign.department}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {campaign.location}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Created {new Date(campaign.createdAt).toLocaleDateString()}
-                      </div>
-                      
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <div className="flex items-center text-sm text-gray-600"
-                          onClick={(e)=>e.stopPropagation()}>
+                      <div>
+                        <div className="flex gap-4 items-center">
+                          <CardTitle className="text-lg font-semibold text-gray-900 transition-colors">
+                            {campaign.campaignName}
+                          </CardTitle>
+                          <Badge className={`${getStatusColor(campaign.status)} border-0`}>
+                            {campaign.status}
+                          </Badge>
+                          <div className="flex items-center text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
                             <Users className="w-4 h-4 mr-1" />
                             {campaign.candidatesCount || 0} candidates
                           </div>
-                          <div className="flex items-center gap-2">
-                            
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/dashboard/job-campaign/candidates?campaignId=${campaign.id}`);
-                            }}
-                            title="View Candidates"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-
-                          
-                            {/* <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCampaignId(campaign.id);
-                              setShowCandidatesModal(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button> */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditCampaign(campaign.id)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCampaign(campaign.id);
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:border-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
                         </div>
+                        <p className="text-sm text-gray-600 mt-1">{campaign.jobTitle}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/job-campaign/candidates?campaignId=${campaign.id}`);
+                          }}
+                          title="View Candidates"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEditCampaign(campaign.id)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCampaign(campaign.id);
+                          }}
+                          className="bg-red-50 hover:bg-red-100"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700">
+                          <Plus className="w-4 h-4 text-white" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex justify-between items-center">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Building2 className="w-4 h-4 mr-2" />
+                          {campaign.department}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {campaign.location}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {campaign.experienceLevel}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Created {new Date(campaign.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                        <p>{campaign.candidatesCount || 0}</p>
+                        <p>Applied</p>
+                      </div>
+                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                        {/* <p>{campaign.screeningCount || 0}</p> */}
+                        <p>0</p>
+                        <p>Screening</p>
+                      </div>
+                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                        {/* <p>{campaign.shortlistedCount || 0}</p> */}
+                        <p>0</p>
+                        <p>Shortlisted</p>
+                      </div>
+                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                        {/* <p>{campaign.interviewedCount || 0}</p> */}
+                        <p>0</p>
+                        <p>Interviewed</p>
+                      </div>
+                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                        {/* <p>{campaign.hiredCount || 0}</p> */}
+                        <p>0</p>
+                        <p>Hired</p>
                       </div>
                     </div>
                   </CardContent>
@@ -379,7 +389,6 @@ const [candidates, setCandidates] = useState([]);
           </div>
         )}
       </div>
-  
     </div>
   );
 }
