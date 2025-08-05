@@ -105,7 +105,9 @@ export default function CandidatesPage() {
     null
   );
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [campaignInterviewSetups, setCampaignInterviewSetups] = useState<{[key: string]: any[]}>({});
+  const [campaignInterviewSetups, setCampaignInterviewSetups] = useState<{
+    [key: string]: any[];
+  }>({});
 
   useEffect(() => {
     if (session?.user?.companyId) {
@@ -116,8 +118,12 @@ export default function CandidatesPage() {
 
   // Fetch interview setups for campaign candidates
   useEffect(() => {
-    const campaignIds = [...new Set(candidates.filter(c => c.campaignId).map(c => c.campaignId))];
-    campaignIds.forEach(campaignId => {
+    const campaignIds = [
+      ...new Set(
+        candidates.filter((c) => c.campaignId).map((c) => c.campaignId)
+      ),
+    ];
+    campaignIds.forEach((campaignId) => {
       if (campaignId && !campaignInterviewSetups[campaignId]) {
         fetchInterviewSetupsForCampaign(campaignId);
       }
@@ -172,20 +178,28 @@ export default function CandidatesPage() {
 
   const fetchInterviewSetupsForCampaign = async (campaignId: string) => {
     try {
-      const response = await fetch(`/api/campaigns/jobs/${campaignId}/interview-setups`);
+      const response = await fetch(
+        `/api/campaigns/jobs/${campaignId}/interview-setups`
+      );
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setCampaignInterviewSetups(prev => ({
+          setCampaignInterviewSetups((prev) => ({
             ...prev,
-            [campaignId]: data.data || []
+            [campaignId]: data.data || [],
           }));
         }
       } else {
-        console.error(`Failed to fetch interview setups for campaign ${campaignId}:`, response.statusText);
+        console.error(
+          `Failed to fetch interview setups for campaign ${campaignId}:`,
+          response.statusText
+        );
       }
     } catch (error) {
-      console.error(`Error fetching interview setups for campaign ${campaignId}:`, error);
+      console.error(
+        `Error fetching interview setups for campaign ${campaignId}:`,
+        error
+      );
     }
   };
 
@@ -304,75 +318,56 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">All Candidates</h1>
-          <p className="text-gray-600 mt-1 text-sm sm:text-base">
-            Manage and track all candidates across campaigns
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowUpload(true)}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Resume
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+    <div className="container mx-auto sm:p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-medium">All Candidates</h1>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.all}
             </div>
             <p className="text-xs text-gray-600">Total Candidates</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold text-blue-600">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.applied}
             </div>
             <p className="text-xs text-gray-600">Applied</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold text-yellow-600">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.screening}
             </div>
             <p className="text-xs text-gray-600">Screening</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold text-purple-600">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.interview}
             </div>
             <p className="text-xs text-gray-600">Interview</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold text-green-600">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.hired}
             </div>
             <p className="text-xs text-gray-600">Hired</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-xl sm:text-2xl font-bold text-red-600">
+          <CardContent className="p-4 text-center">
+            <div className="text-xl sm:text-2xl font-medium mb-1">
               {candidatesByStatus.rejected}
             </div>
             <p className="text-xs text-gray-600">Rejected</p>
@@ -383,8 +378,8 @@ export default function CandidatesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex-1 mr-20">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -395,6 +390,18 @@ export default function CandidatesPage() {
                 />
               </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowUpload(true)}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              <p className="font-normal">Upload Resume</p>
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              <p className="font-normal">Export Resume</p>
+            </Button>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -502,15 +509,18 @@ export default function CandidatesPage() {
                           </div>
 
                           {/* Talent Fit Score, Resume and View Profile Buttons */}
-                          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                          <div className="flex items-center gap-2 sm:gap-4 text-sm sm:text-xs">
+                            <div className="flex items-center gap-2 text-gray-500 cursor-pointer">
+                              <RefreshCcw size={16} />
+                              <p>Recalculate</p>
+                            </div>
                             {candidate.talentFitScore && (
                               <div className="relative group flex items-center gap-2 text-xs">
-                                Talent Fit Score:
                                 <div>
                                   <CircularProgress
                                     score={candidate.talentFitScore}
                                   />
-                                  <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-white border border-gray-200 rounded-md shadow-lg z-20 p-4 text-sm text-gray-700 transition-all duration-75">
+                                  <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-col bg-white rounded-md border-[1px] border-gray-200 shadow-sm z-20 p-4 text-sm text-gray-700 transition-all duration-75">
                                     {candidate.skills &&
                                       typeof candidate.skills === "string" &&
                                       (() => {
@@ -670,21 +680,44 @@ export default function CandidatesPage() {
                               <EyeIcon className="h-4 w-4" />
                             </Button>
 
-                            <DirectInterviewScheduler
-                              candidateId={candidate.id}
-                              candidateName={candidate.name}
-                              candidateEmail={candidate.email}
-                              // Pass campaign context if candidate is campaign-based
-                              campaignJobDetails={candidate.campaignId ? {
-                                campaignName: candidate.campaignName || 'Campaign',
-                                jobTitle: candidate.jobTitle || 'Position',
-                                jobDescription: `Interview for ${candidate.jobTitle || 'position'} in ${candidate.campaignName || 'campaign'}`,
-                                department: undefined,
-                                location: candidate.location
-                              } : undefined}
-                              interviewSetups={candidate.campaignId ? campaignInterviewSetups[candidate.campaignId] : undefined}
-                              campaignId={candidate.campaignId || undefined}
-                            />
+                            <Select value={candidate.status}>
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="scheduled">
+                                  Scheduled Interview
+                                </SelectItem>
+                                <SelectItem value="approved">
+                                  Approved
+                                </SelectItem>
+                                <SelectItem value="rejected">
+                                  Rejected
+                                </SelectItem>
+                                <SelectItem value="applied">Applied</SelectItem>
+                                <SelectItem value="screening">
+                                  Screening
+                                </SelectItem>
+                                <SelectItem value="shortlisted">
+                                  Shortlisted
+                                </SelectItem>
+                                <SelectItem value="interview">
+                                  Interviewed
+                                </SelectItem>
+                                <SelectItem value="hired">Hired</SelectItem>
+                                <SelectItem value="rejected">
+                                  Rejected
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="bg-red-100 hover:bg-red-200"
+                            >
+                              <Trash className="h-4 w-4 text-red-600" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -713,68 +746,28 @@ export default function CandidatesPage() {
                                   : "Unknown"}
                               </span>
                             </div>
-                          </div>
 
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            {candidate.phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <span>
-                                  {candidate.phone
-                                    ? candidate.phone
-                                    : "Unknown"}
-                                </span>
-                              </div>
-                            )}
-                            {candidate.location && (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span>
-                                  {candidate.location
-                                    ? candidate.location
-                                    : "Unknown"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Right */}
-                        <div className="w-full sm:w-[55%] flex flex-wrap gap-2 sm:ml-4 sm:justify-end items-end">
-                          {/* Candidate Status Button */}
-                          <button className="flex gap-2 px-3 py-2 border-[1px] border-emerald-400 text-[10px] rounded-md text-emerald-400 font-semibold">
-                            <ThumbsUpIcon size={16} />
-                            Approved
-                          </button>
-                          <button className="flex gap-2 px-3 py-2 border-[1px] border-red-400 text-[10px] rounded-md text-red-400 font-semibold">
-                            <ThumbsDownIcon size={16} />
-                            Rejected
-                          </button>
-                          <button className="flex gap-2 px-3 py-2 border-[1px] border-gray-400 text-[10px] rounded-md text-nowrap font-semibold">
-                            <Calendar size={16} />
-                            Schedule Interview
-                          </button>
-                          <div className="relative group">
-                            <button className="px-3 py-2 border-[1px] border-gray-400 text-[10px] rounded-md hover:bg-gray-100 transition-colors">
-                              <Ellipsis size={16} />
-                            </button>
-                            <div className="absolute right-0 top-full mt-3 hidden group-hover:flex flex-col bg-white border border-gray-200 rounded-md shadow-lg z-20 text-nowrap">
-                              <button
-                                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-3"
-                                onClick={() =>
-                                  console.log("Recalculated Talent Fit Score")
-                                } // Placeholder for Option1 action
-                              >
-                                <RefreshCcw size={16} />
-                                Recalculate Talent Fit Score
-                              </button>
-                              <button
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors flex items-center gap-3 text-red-600"
-                                onClick={() => console.log("Deleted Candidate")} // Placeholder for Option2 action
-                              >
-                                <Trash size={16} />
-                                Delete Candidate
-                              </button>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              {candidate.phone && (
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4" />
+                                  <span>
+                                    {candidate.phone
+                                      ? candidate.phone
+                                      : "Unknown"}
+                                  </span>
+                                </div>
+                              )}
+                              {candidate.location && (
+                                <div className="flex items-center gap-2 text-nowrap">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>
+                                    {candidate.location
+                                      ? candidate.location
+                                      : "Unknown"}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -790,20 +783,13 @@ export default function CandidatesPage() {
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="max-w-[90vw] sm:max-w-md">
+        <DialogContent className="w-[90vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Candidate Resumes</DialogTitle>
-            <DialogDescription>
-              Select one or more resume files to upload and automatically parse
-              candidate information.
-            </DialogDescription>
+            <DialogTitle>Upload Resumes</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
               <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                Drag and drop resume files here, or click to browse
-              </p>
               <input
                 type="file"
                 multiple

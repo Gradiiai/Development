@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/shared/button';
-import { Input } from '@/components/ui/shared/input';
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/shared/button";
+import { Input } from "@/components/ui/shared/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/shared/dialog';
+} from "@/components/ui/shared/dialog";
 import {
   Table,
   TableBody,
@@ -27,23 +27,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/shared/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shared/card';
-import { Badge } from '@/components/ui/shared/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/shared/label';
-import { toast } from 'sonner';
-import { 
-  Loader2, 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
-  Sparkles, 
-  ArrowLeft, 
-  FolderOpen, 
-  FileText, 
+} from "@/components/ui/shared/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/shared/card";
+import { Badge } from "@/components/ui/shared/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/shared/label";
+import { toast } from "sonner";
+import {
+  Loader2,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  Sparkles,
+  ArrowLeft,
+  FolderOpen,
+  FileText,
   MoreVertical,
   Eye,
   Copy,
@@ -56,30 +62,38 @@ import {
   Code,
   MessageSquare,
   CheckCircle2,
-  ListChecks ,
+  ListChecks,
   AlertCircle,
   Calendar,
-  Layers
-} from 'lucide-react';
+  Layers,
+  MoveLeft,
+  ArrowLeftIcon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from '@/components/ui/shared/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/shared/tabs';
-import { 
-  QUESTION_CATEGORIES, 
-  INTERVIEW_TYPES, 
+} from "@/components/ui/shared/dropdown-menu";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/shared/tabs";
+import {
+  QUESTION_CATEGORIES,
+  INTERVIEW_TYPES,
   DIFFICULTY_LEVELS,
   CATEGORY_INFO,
   APTITUDE_SUBCATEGORIES,
   TECHNICAL_SUBCATEGORIES,
   SKILLS_SUBCATEGORIES,
   SCREENING_SUBCATEGORIES,
-  COMMUNICATION_SUBCATEGORIES
-} from '@/lib/constants/question-bank';
+  COMMUNICATION_SUBCATEGORIES,
+} from "@/lib/constants/question-bank";
+import { Twinkle_Star } from "next/font/google";
 
 // Define the Question type
 interface Question {
@@ -137,7 +151,6 @@ interface QuestionCollectionTemplate {
   description: string;
   category: string;
   subCategory?: string;
-    questionTypes: string[];
   interviewTypes: string[];
   targetRoles: string[];
   difficultyLevels: string[];
@@ -147,99 +160,103 @@ interface QuestionCollectionTemplate {
 export default function QuestionCollectionPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  
-  // Main state
-    const [questionBanks, setQuestionBanks] = useState<QuestionCollectionTemplate[]>([]);
 
-  const [questionCollections, setQuestionCollections] = useState<QuestionCollection[]>([]);
+  // Main state
+  const [questionCollections, setQuestionCollections] = useState<
+    QuestionCollection[]
+  >([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [questionsLoading, setQuestionsLoading] = useState(false);
-  
+
   // View state
-  const [currentView, setCurrentView] = useState<'collections' | 'questions'>('collections');
-  const [selectedCollection, setSelectedCollection] = useState<QuestionCollection | null>(null);
-  
+  const [currentView, setCurrentView] = useState<"collections" | "questions">(
+    "collections"
+  );
+  const [selectedCollection, setSelectedCollection] =
+    useState<QuestionCollection | null>(null);
+
   // Dialog states
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-const [progress, setProgress] = useState(0);
-const[isGenerate, setIsGenerate] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [isGenerate, setIsGenerate] = useState(false);
   // Question Collection form state
   const [collectionFormData, setCollectionFormData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    subCategory: '',
-    tags: '',
+    name: "",
+    description: "",
+    category: "",
+    subCategory: "",
+    tags: "",
     isPublic: false,
     isTemplate: false,
-    collectionType: 'custom',
+    collectionType: "custom",
   });
-  
+
   // Templates state
   const [templates, setTemplates] = useState<QuestionCollectionTemplate[]>([]);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<QuestionCollectionTemplate | null>(null);
-  
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<QuestionCollectionTemplate | null>(null);
+
   // Dependency checking state
   const [dependencyInfo, setDependencyInfo] = useState<any>(null);
   const [showDependencyDialog, setShowDependencyDialog] = useState(false);
-  const [collectionToDelete, setCollectionToDelete] = useState<QuestionCollection | null>(null);
-  
+  const [collectionToDelete, setCollectionToDelete] =
+    useState<QuestionCollection | null>(null);
+
   // Enhanced filters
   const [bankFilters, setBankFilters] = useState({
-    category: '',
-    search: '',
-    sortBy: 'createdAt',
-    sortOrder: 'desc' as 'asc' | 'desc'
+    category: "",
+    search: "",
+    sortBy: "createdAt",
+    sortOrder: "desc" as "asc" | "desc",
   });
-  
+
   // Question form state
   const [questionFormData, setQuestionFormData] = useState({
-    questionType: '',
-    category: '',
-    difficultyLevel: '',
-    question: '',
-    expectedAnswer: '',
-    sampleAnswer: '',
-    scoringRubric: '',
-    tags: '',
+    questionType: "",
+    category: "",
+    difficultyLevel: "",
+    question: "",
+    expectedAnswer: "",
+    sampleAnswer: "",
+    scoringRubric: "",
+    tags: "",
   });
-  
+
   // Filter state for questions
   const [questionFilters, setQuestionFilters] = useState({
-    questionType: '',
-    search: '',
+    questionType: "",
+    search: "",
   });
-  
+
   // AI Generation state
   const [aiFormData, setAiFormData] = useState({
-    type: '',
+    type: "",
     count: 1,
-    jobTitle: '',
-    behavioralCount:1,
-    mcqCount:1,
-    codingCount:1,
-    jobDescription: '',
-    yearsOfExperience: '',
-    difficulty: 'medium',
-    topic: '',
-    category: '',
-    languages: ['javascript'],
+    jobTitle: "",
+    behavioralCount: 1,
+    mcqCount: 1,
+    codingCount: 1,
+    jobDescription: "",
+    yearsOfExperience: "",
+    difficulty: "medium",
+    topic: "",
+    category: "",
   });
 
   useEffect(() => {
     if (!session) return;
-    if (currentView === 'collections') {
+    if (currentView === "collections") {
       fetchQuestionCollections();
     }
   }, [session, currentView]);
 
   useEffect(() => {
-    if (selectedCollection && currentView === 'questions') {
+    if (selectedCollection && currentView === "questions") {
       fetchQuestions();
     }
   }, [selectedCollection, currentView, questionFilters]);
@@ -247,17 +264,17 @@ const[isGenerate, setIsGenerate] = useState(false);
   const fetchQuestionCollections = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/content/questions/banks');
+      const response = await fetch("/api/content/questions/banks");
       const data = await response.json();
 
       if (data.success) {
         setQuestionCollections(data.data);
       } else {
-        toast.error(data.error || 'Failed to fetch question collections');
+        toast.error(data.error || "Failed to fetch question collections");
       }
     } catch (error) {
-      console.error('Error fetching question collections:', error);
-      toast.error('Failed to fetch question collections');
+      console.error("Error fetching question collections:", error);
+      toast.error("Failed to fetch question collections");
     } finally {
       setLoading(false);
     }
@@ -265,59 +282,44 @@ const[isGenerate, setIsGenerate] = useState(false);
 
   const fetchQuestions = async () => {
     if (!selectedCollection) return;
-    
+
     setQuestionsLoading(true);
     try {
       const queryParams = new URLSearchParams();
-      if (questionFilters.questionType && questionFilters.questionType !== 'all') {
-        queryParams.append('questionType', questionFilters.questionType);
+      if (
+        questionFilters.questionType &&
+        questionFilters.questionType !== "all"
+      ) {
+        queryParams.append("questionType", questionFilters.questionType);
       }
       if (questionFilters.search) {
-        queryParams.append('search', questionFilters.search);
+        queryParams.append("search", questionFilters.search);
       }
 
-      const response = await fetch(`/api/content/questions/banks/${selectedCollection.id}?${queryParams.toString()}`);
+      const response = await fetch(
+        `/api/content/questions/banks/${selectedCollection.id}?${queryParams.toString()}`
+      );
       const data = await response.json();
 
       if (data.success) {
         setQuestions(data.data.questions);
       } else {
-        toast.error(data.error || 'Failed to fetch questions');
+        toast.error(data.error || "Failed to fetch questions");
       }
     } catch (error) {
-      console.error('Error fetching questions:', error);
-      toast.error('Failed to fetch questions');
+      console.error("Error fetching questions:", error);
+      toast.error("Failed to fetch questions");
     } finally {
       setQuestionsLoading(false);
     }
   };
 
-    const fetchQuestionBanks = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/content/questions/banks');
-      const data = await response.json();
-
-      if (data.success) {
-        setQuestionBanks(data.data);
-      } else {
-        toast.error(data.error || 'Failed to fetch question banks');
-      }
-    } catch (error) {
-      console.error('Error fetching question banks:', error);
-      toast.error('Failed to fetch question banks');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
   const handleCreateQuestionCollection = async () => {
     try {
-      const response = await fetch('/api/content/questions/banks', {
-        method: 'POST',
+      const response = await fetch("/api/content/questions/banks", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(collectionFormData),
       });
@@ -325,27 +327,27 @@ const[isGenerate, setIsGenerate] = useState(false);
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Question bank created successfully');
+        toast.success("Question bank created successfully");
         setIsCollectionDialogOpen(false);
         resetBankForm();
         fetchQuestionCollections();
       } else {
-        toast.error(data.error || 'Failed to create question bank');
+        toast.error(data.error || "Failed to create question bank");
       }
     } catch (error) {
-      console.error('Error creating question bank:', error);
-      toast.error('Failed to create question bank');
+      console.error("Error creating question bank:", error);
+      toast.error("Failed to create question bank");
     }
   };
 
   const handleCreateQuestion = async () => {
     if (!selectedCollection) return;
-    
+
     try {
-      const response = await fetch('/api/content/questions', {
-        method: 'POST',
+      const response = await fetch("/api/content/questions", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...questionFormData,
@@ -356,73 +358,78 @@ const[isGenerate, setIsGenerate] = useState(false);
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Question created successfully');
+        toast.success("Question created successfully");
         setIsQuestionDialogOpen(false);
         resetQuestionForm();
         fetchQuestions();
       } else {
-        toast.error(data.error || 'Failed to create question');
+        toast.error(data.error || "Failed to create question");
       }
     } catch (error) {
-      console.error('Error creating question:', error);
-      toast.error('Failed to create question');
+      console.error("Error creating question:", error);
+      toast.error("Failed to create question");
     }
   };
 
   const handleUpdateQuestion = async () => {
     if (!editingQuestion) return;
-    
+
     try {
-      const response = await fetch(`/api/content/questions/${editingQuestion.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(questionFormData),
-      });
+      const response = await fetch(
+        `/api/content/questions/${editingQuestion.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(questionFormData),
+        }
+      );
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Question updated successfully');
+        toast.success("Question updated successfully");
         setIsQuestionDialogOpen(false);
         setEditingQuestion(null);
         resetQuestionForm();
         fetchQuestions();
       } else {
-        toast.error(data.error || 'Failed to update question');
+        toast.error(data.error || "Failed to update question");
       }
     } catch (error) {
-      console.error('Error updating question:', error);
-      toast.error('Failed to update question');
+      console.error("Error updating question:", error);
+      toast.error("Failed to update question");
     }
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
-    if (!confirm('Are you sure you want to delete this question?')) return;
-    
+    if (!confirm("Are you sure you want to delete this question?")) return;
+
     try {
       const response = await fetch(`/api/content/questions/${questionId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Question deleted successfully');
+        toast.success("Question deleted successfully");
         fetchQuestions();
       } else {
-        toast.error(data.error || 'Failed to delete question');
+        toast.error(data.error || "Failed to delete question");
       }
     } catch (error) {
-      console.error('Error deleting question:', error);
-      toast.error('Failed to delete question');
+      console.error("Error deleting question:", error);
+      toast.error("Failed to delete question");
     }
   };
   const checkDependenciesAndDelete = async (bank: QuestionCollection) => {
     try {
       // First check dependencies
-      const response = await fetch(`/api/content/question-banks/${bank.id}/dependencies`);
+      const response = await fetch(
+        `/api/content/question-banks/${bank.id}/dependencies`
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -430,26 +437,29 @@ const[isGenerate, setIsGenerate] = useState(false);
         setCollectionToDelete(bank);
         setShowDependencyDialog(true);
       } else {
-        toast.error('Failed to check dependencies');
+        toast.error("Failed to check dependencies");
       }
     } catch (error) {
-      console.error('Error checking dependencies:', error);
-      toast.error('Failed to check dependencies');
+      console.error("Error checking dependencies:", error);
+      toast.error("Failed to check dependencies");
     }
   };
 
   const handleDeleteQuestionCollection = async () => {
     if (!collectionToDelete) return;
-    
+
     try {
-      const response = await fetch(`/api/content/questions/banks/${collectionToDelete.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/content/questions/banks/${collectionToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Question bank deleted successfully');
+        toast.success("Question bank deleted successfully");
         setShowDependencyDialog(false);
         setCollectionToDelete(null);
         setDependencyInfo(null);
@@ -457,276 +467,297 @@ const[isGenerate, setIsGenerate] = useState(false);
       } else {
         if (response.status === 409) {
           // Conflict - show detailed error information
-          toast.error(data.details?.message || 'Cannot delete question bank - it is in use');
+          toast.error(
+            data.details?.message ||
+              "Cannot delete question bank - it is in use"
+          );
         } else {
-          toast.error(data.error || 'Failed to delete question bank');
+          toast.error(data.error || "Failed to delete question bank");
         }
       }
     } catch (error) {
-      console.error('Error deleting question bank:', error);
-      toast.error('Failed to delete question bank');
+      console.error("Error deleting question bank:", error);
+      toast.error("Failed to delete question bank");
     }
   };
 
   // Function to fetch templates
   const fetchTemplates = async () => {
     try {
-      const response = await fetch('/api/content/templates');
+      const response = await fetch("/api/content/question-bank-templates");
       const data = await response.json();
-      
+
       if (data.success) {
         setTemplates(data.data);
       }
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      console.error("Error fetching templates:", error);
     }
   };
 
   // Function to create question bank from template
-const createFromTemplate = async (template: QuestionCollectionTemplate, customName?: string, customDescription?: string) => {
-  try {
-    const response = await fetch('/api/content/question-bank-templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        templateId: template.name,
-        customName,
-        customDescription,
-      }),
-    });
+  const createFromTemplate = async (
+    template: QuestionCollectionTemplate,
+    customName?: string,
+    customDescription?: string
+  ) => {
+    try {
+      const response = await fetch("/api/content/question-bank-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: template.name,
+          customName,
+          customDescription,
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.success) {
-      toast.success(data.message || 'Question bank created from template');
-      setShowTemplateDialog(false);
-      setSelectedTemplate(null);
-      fetchQuestionBanks();
+      if (data.success) {
+        toast.success(data.message || "Question bank created from template");
+        setShowTemplateDialog(false);
+        setSelectedTemplate(null);
+        fetchQuestionCollections();
 
-      if (data.data?.id) {
-        const questionBankId = data.data.id;
+        if (data.data?.id) {
+          const questionBankId = data.data.id;
 
-        for (const type of template.questionTypes) {
-          let endpoint = '';
-          switch (type) {
-            case 'coding':
-              endpoint = '/api/ai/generate-coding';
-              break;
-            case 'mcq':
-              endpoint = '/api/ai/generate-mcq';
-              break;
-            case 'behavioral':
-              endpoint = '/api/ai/generate-behavioral';
-              break;
-            // Add other types if needed
-            default:
-              continue;
-          }
+          for (const type of template.interviewTypes) {
+            let endpoint = "";
+            switch (type) {
+              case "coding":
+                endpoint = "/api/ai/generate-coding";
+                break;
+              case "mcq":
+                endpoint = "/api/ai/generate-mcq";
+                break;
+              case "behavioral":
+                endpoint = "/api/ai/generate-behavioral";
+                break;
+              // Add other types if needed
+              default:
+                continue;
+            }
 
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            body: new URLSearchParams({
-              questionBankId: questionBankId,
-              topic: template.name || template.description || 'General',
-              totalQuestions: '5',
-              difficulty: 'medium',
-              type: type,
-            }),
-          });
-
-          if (response.ok) {
-            const responseText = await response.text();
-            const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const aiQuestions = JSON.parse(cleanedText);
-
-            // Convert AI questions to DB format and save
-            const questionsToSave = aiQuestions.map((q: any) => {
-              if (type === 'coding') {
-                return {
-                  questionType: 'coding',
-                  question: q.title + '\n\n' + q.description,
-                  expectedAnswer: q.explanation,
-                  category: 'Technical',
-                  difficultyLevel: q.difficulty || 'medium',
-                  questionBankId: questionBankId,
-                };
-              } else if (type === 'mcq') {
-                return {
-                  questionType: 'mcq',
-                  question: q.question,
-                  expectedAnswer: q.correctAnswer,
-                  category: 'Technical',
-                  difficultyLevel: q.difficulty || 'medium',
-                  questionBankId: questionBankId,
-                };
-              } else if (type === 'behavioral') {
-                return {
-                  questionType: 'behavioral',
-                  question: q.question,
-                  expectedAnswer: q.purpose,
-                  category: 'Behavioral',
-                  difficultyLevel: 'medium',
-                  questionBankId: questionBankId,
-                };
-              }
+            const response = await fetch(endpoint, {
+              method: "POST",
+              body: new URLSearchParams({
+                questionBankId: questionBankId,
+                topic: template.name || template.description || "General",
+                totalQuestions: "5",
+                difficulty: "medium",
+                type: type,
+              }),
             });
 
-            for (const questionData of questionsToSave) {
-              await fetch('/api/content/questions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(questionData),
+            if (response.ok) {
+              const responseText = await response.text();
+              const cleanedText = responseText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              const aiQuestions = JSON.parse(cleanedText);
+
+              // Convert AI questions to DB format and save
+              const questionsToSave = aiQuestions.map((q: any) => {
+                if (type === "coding") {
+                  return {
+                    questionType: "coding",
+                    question: q.title + "\n\n" + q.description,
+                    expectedAnswer: q.explanation,
+                    category: template.name || "Technical",
+                    difficultyLevel: q.difficulty || "medium",
+                    collectionId: questionBankId,
+                  };
+                } else if (type === "mcq") {
+                  return {
+                    questionType: "mcq",
+                    question: q.question,
+                    expectedAnswer: q.correctAnswer,
+                    category: template.name || "Technical",
+                    difficultyLevel: q.difficulty || "medium",
+                    collectionId: questionBankId,
+                  };
+                } else if (type === "behavioral") {
+                  return {
+                    questionType: "behavioral",
+                    question: q.question,
+                    expectedAnswer: q.purpose,
+                    category: template.name || "Behavioral",
+                    difficultyLevel: "medium",
+                    collectionId: questionBankId,
+                  };
+                }
               });
+
+              for (const questionData of questionsToSave) {
+                await fetch("/api/content/questions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(questionData),
+                });
+              }
+            } else {
+              toast.error(`Failed to generate ${type} questions`);
             }
-          } else {
-            toast.error(`Failed to generate ${type} questions`);
           }
+
+          fetchQuestions();
         }
-
-        fetchQuestions();
+      } else {
+        toast.error(
+          data.error || "Failed to create question bank from template"
+        );
       }
-    } else {
-      toast.error(data.error || 'Failed to create question bank from template');
+    } catch (error) {
+      console.error("Error creating from template:", error);
+      toast.error("Failed to create question bank from template");
     }
-  } catch (error) {
-    console.error('Error creating from template:', error);
-    toast.error('Failed to create question bank from template');
-  }
-};
-const preferredLanguage = aiFormData.languages?.[0]?.toLowerCase() || 'javascript';
-
+  };
   const handleGenerateQuestions = async () => {
     if (!selectedCollection) return;
-    
+
     setIsGenerate(true);
     try {
       // Determine the endpoint based on question type
-      let endpoint = '';
+      let endpoint = "";
       switch (aiFormData.type) {
-        case 'coding':
-          endpoint = '/api/ai/generate-coding';
+        case "coding":
+          endpoint = "/api/ai/generate-coding";
           break;
-        case 'behavioral':
-          endpoint = '/api/ai/generate-behavioral';
+        case "behavioral":
+          endpoint = "/api/ai/generate-behavioral";
           break;
-        case 'mcq':
-          endpoint = '/api/ai/generate-mcq';
+        case "mcq":
+          endpoint = "/api/ai/generate-mcq";
           break;
-        case 'combo':
-          endpoint = '/api/ai/generate-combo';
+        case "combo":
+          endpoint = "/api/ai/generate-combo";
           break;
         default:
-          toast.error('Please select a question type');
+          toast.error("Please select a question type");
           return;
       }
-      
 
       // Prepare form data
       const formData = new FormData();
-      formData.append('topic', aiFormData.topic || selectedCollection?.name || 'General');
-      formData.append('totalQuestions', String(aiFormData.count));
-      formData.append('jobDescription', aiFormData.jobDescription || '');
-      formData.append('difficulty', aiFormData.difficulty || 'medium');
-      formData.append('type', aiFormData.type || '');
-      formData.append('experience',aiFormData.yearsOfExperience || '')
-      formData.append('jobTitle',aiFormData.jobTitle || '')
+      formData.append(
+        "topic",
+        aiFormData.topic || selectedCollection?.name || "General"
+      );
+      formData.append("totalQuestions", String(aiFormData.count));
+      formData.append("jobDescription", aiFormData.jobDescription || "");
+      formData.append("difficulty", aiFormData.difficulty || "medium");
+      formData.append("type", aiFormData.type || "");
+      formData.append("experience", aiFormData.yearsOfExperience || "");
+      formData.append("jobTitle", aiFormData.jobTitle || "");
 
-      if (aiFormData.type === 'combo') {
-        formData.append('coding', String(aiFormData.codingCount));
-        formData.append('behavioral', String(aiFormData.behavioralCount));
-        formData.append('mcq', String(aiFormData.mcqCount));
+      if (aiFormData.type === "combo") {
+        formData.append("coding", String(aiFormData.codingCount));
+        formData.append("behavioral", String(aiFormData.behavioralCount));
+        formData.append("mcq", String(aiFormData.mcqCount));
       }
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
-const responseText = await response.text();
+      const responseText = await response.text();
 
-if (response.ok) {
-  // ✅ Sanitize AI response: remove ```json and ```
-  const cleanedText = responseText
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
+      if (response.ok) {
+        // ✅ Sanitize AI response: remove ```json and ```
+        const cleanedText = responseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
 
-  let aiQuestions;
-  try {
-    aiQuestions = JSON.parse(cleanedText);
-  } catch (err) {
-    console.error('Invalid JSON from AI:', cleanedText);
-    toast.error('Failed to parse AI response');
-    return;
-  }        
+        let aiQuestions;
+        try {
+          aiQuestions = JSON.parse(cleanedText);
+        } catch (err) {
+          console.error("Invalid JSON from AI:", cleanedText);
+          toast.error("Failed to parse AI response");
+          return;
+        }
         // Convert AI format to our database format and save
         let questionsToSave = [];
-        
-        if (aiFormData.type === 'combo') {
+
+        if (aiFormData.type === "combo") {
           // Handle combo questions
           if (aiQuestions.coding) {
-            questionsToSave.push(...aiQuestions.coding.map((q: any) => ({
-              questionType: 'coding',
-              question: q.title + '\n\n' + q.description,
-              expectedAnswer: q.explanation,
-              category: aiFormData.category || 'Technical',
-              difficultyLevel: q.difficulty || 'medium',
-              collectionId: selectedCollection.id
-            })));
+            questionsToSave.push(
+              ...aiQuestions.coding.map((q: any) => ({
+                questionType: "coding",
+                question: q.title + "\n\n" + q.description,
+                expectedAnswer: q.explanation,
+                category: aiFormData.category || "Technical",
+                difficultyLevel: q.difficulty || "medium",
+                collectionId: selectedCollection.id,
+              }))
+            );
           }
           if (aiQuestions.behavioral) {
-            questionsToSave.push(...aiQuestions.behavioral.map((q: any) => ({
-              questionType: 'behavioral',
-              question: q.question,
-              expectedAnswer: q.purpose,
-              category: aiFormData.category || 'Behavioral',
-              difficultyLevel: 'medium',
-              collectionId: selectedCollection.id
-            })));
+            questionsToSave.push(
+              ...aiQuestions.behavioral.map((q: any) => ({
+                questionType: "behavioral",
+                question: q.question,
+                expectedAnswer: q.purpose,
+                category: aiFormData.category || "Behavioral",
+                difficultyLevel: "medium",
+                collectionId: selectedCollection.id,
+              }))
+            );
           }
           if (aiQuestions.mcq) {
-            questionsToSave.push(...aiQuestions.mcq.map((q: any) => ({
-              questionType: 'mcq',
-              question: q.question,
-              expectedAnswer: q.correctAnswer,
-              category: aiFormData.category || 'Mcq',
-              difficultyLevel: q.difficulty || 'medium',
-              collectionId: selectedCollection.id
-            })));
+            questionsToSave.push(
+              ...aiQuestions.mcq.map((q: any) => ({
+                questionType: "mcq",
+                question: q.question,
+                expectedAnswer: q.correctAnswer,
+                category: aiFormData.category || "Mcq",
+                difficultyLevel: q.difficulty || "medium",
+                collectionId: selectedCollection.id,
+              }))
+            );
           }
         } else {
           // Handle single type questions
           questionsToSave = aiQuestions.map((q: any) => ({
             questionType: aiFormData.type,
-            question: aiFormData.type === 'coding' ? q.title + '\n\n' + q.description : q.question || q.title,
-expectedAnswer: aiFormData.type === 'coding'
-  ? q.solution?.[preferredLanguage] || Object.values(q.solution || {})[0] || q.explanation
-  : q.explanation || q.purpose || q.correctAnswer,
-            category: aiFormData.category || 'General',
-            difficultyLevel: q.difficulty || 'medium',
-            collectionId: selectedCollection.id
+            question:
+              aiFormData.type === "coding"
+                ? q.title + "\n\n" + q.description
+                : q.question || q.title,
+            expectedAnswer: q.explanation || q.purpose || q.correctAnswer,
+            category: aiFormData.category || "General",
+            difficultyLevel: q.difficulty || "medium",
+            collectionId: selectedCollection.id,
           }));
         }
 
         // Save questions to database
         for (const questionData of questionsToSave) {
-          await fetch('/api/content/questions', {
-            method: 'POST',
+          await fetch("/api/content/questions", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify(questionData),
           });
         }
 
-        toast.success(`Generated ${questionsToSave.length} questions successfully`);
+        toast.success(
+          `Generated ${questionsToSave.length} questions successfully`
+        );
         fetchQuestions();
       } else {
-        toast.error('Failed to generate questions');
+        toast.error("Failed to generate questions");
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
-      toast.error('Failed to generate questions');
+      console.error("Error generating questions:", error);
+      toast.error("Failed to generate questions");
     } finally {
       setIsGenerating(false);
     }
@@ -734,27 +765,27 @@ expectedAnswer: aiFormData.type === 'coding'
 
   const resetBankForm = () => {
     setCollectionFormData({
-      name: '',
-      description: '',
-      category: '',
-      subCategory: '',
-      tags: '',
+      name: "",
+      description: "",
+      category: "",
+      subCategory: "",
+      tags: "",
       isPublic: false,
       isTemplate: false,
-      collectionType: 'custom',
+      collectionType: "custom",
     });
   };
 
   const resetQuestionForm = () => {
     setQuestionFormData({
-      questionType: '',
-      category: '',
-      difficultyLevel: '',
-      question: '',
-      expectedAnswer: '',
-      sampleAnswer: '',
-      scoringRubric: '',
-      tags: '',
+      questionType: "",
+      category: "",
+      difficultyLevel: "",
+      question: "",
+      expectedAnswer: "",
+      sampleAnswer: "",
+      scoringRubric: "",
+      tags: "",
     });
   };
 
@@ -765,45 +796,55 @@ expectedAnswer: aiFormData.type === 'coding'
       category: question.category,
       difficultyLevel: question.difficultyLevel,
       question: question.question,
-      expectedAnswer: question.expectedAnswer || '',
-      sampleAnswer: question.sampleAnswer || '',
-      scoringRubric: question.scoringRubric || '',
-      tags: question.tags || '',
+      expectedAnswer: question.expectedAnswer || "",
+      sampleAnswer: question.sampleAnswer || "",
+      scoringRubric: question.scoringRubric || "",
+      tags: question.tags || "",
     });
     setIsQuestionDialogOpen(true);
   };
 
   const openCollectionView = (bank: QuestionCollection) => {
     setSelectedCollection(bank);
-    setCurrentView('questions');
+    setCurrentView("questions");
   };
 
   const backToBanks = () => {
-    setCurrentView('collections');
+    setCurrentView("collections");
     setSelectedCollection(null);
     setQuestions([]);
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "easy":
+        return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "hard":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'mcq': return 'bg-blue-100 text-blue-800';
-      case 'coding': return 'bg-purple-100 text-purple-800';
-      case 'behavioral': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "mcq":
+        return "bg-blue-100 text-blue-800";
+      case "coding":
+        return "bg-purple-100 text-purple-800";
+      case "behavioral":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const truncateText = (text: string, maxLength: number = 100) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    return text.length > maxLength
+      ? text.substring(0, maxLength) + "..."
+      : text;
   };
 
   if (!session) {
@@ -818,103 +859,26 @@ expectedAnswer: aiFormData.type === 'coding'
     <div className="min-h-screen">
       <div className="container mx-auto space-y-8">
         {/* Enhanced Header */}
-        <div className="bg-white rounded-2xl border border-gray-200/50 shadow-lg p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              {currentView === "questions" && (
-                <Button
-                  variant="ghost"
-                  onClick={backToBanks}
-                  className="hover:bg-gray-50 transition-all duration-200 group px-4 py-2 rounded-xl"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-                  Back to Question Banks
-                </Button>
-              )}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-3">
-                  {currentView === "collections" ? (
-                    <div className="p-3 bg-emerald-500 rounded-xl">
-                      <BookOpen className="h-6 w-6 text-white" />
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-blue-500 rounded-xl">
-                      <FileText className="h-6 w-6 text-white" />
-                    </div>
-                  )}
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    {currentView === "collections"
-                      ? "Question Banks"
-                      : selectedCollection?.name}
-                  </h1>
-                </div>
-                <p className="text-lg text-gray-600 ml-16">
-                  {currentView === "collections"
-                    ? "Organize and manage your question collections with AI-powered tools"
-                    : selectedCollection?.description ||
-                      "Manage and organize questions in this collection"}
-                </p>
-                {currentView === "collections" && (
-                  <div className="flex items-center space-x-6 ml-16 mt-4">
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <FolderOpen className="h-4 w-4" />
-                      <span>{questionCollections.length} Banks</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <Clock className="h-4 w-4" />
-                      <span>Last updated today</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Enhanced Action Buttons */}
-            <div className="flex space-x-3">
-              {currentView === "collections" ? (
-                <>
-                  <Button
-                    onClick={() => {
-                      fetchTemplates();
-                      setShowTemplateDialog(true);
-                    }}
-                    variant="outline"
-                    className="border-2 border-blue-500 text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-xl font-medium"
-                    size="lg"
-                  >
-                    <Layers className="h-5 w-5 mr-2" />
-                    Use Template
-                  </Button>
-                  <Button
-                    onClick={() => setIsCollectionDialogOpen(true)}
-                    className="bg-emerald-500 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 px-6 py-3 rounded-xl font-medium"
-                    size="lg"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Create Question Bank
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsQuestionDialogOpen(true)}
-                    className="border-gray-300 hover:bg-gray-50 px-6 py-3 rounded-xl font-medium"
-                    size="lg"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Question
-                  </Button>
-                  <Button
-                    onClick={() => setIsGenerating(true)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-600/20 px-6 py-3 rounded-xl font-medium"
-                    size="lg"
-                  >
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    AI Generate
-                  </Button>
-                </>
-              )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            {currentView === "questions" && (
+              <Button
+                variant="ghost"
+                onClick={backToBanks}
+                className="hover:bg-gray-50 transition-all duration-200 group px-4 py-2 rounded-xl"
+              >
+                <ArrowLeftIcon
+                  className="group-hover:-translate-x-1 transition-transform"
+                  size={44}
+                />
+              </Button>
+            )}
+            <div className="flex items-center">
+              <h1 className="text-3xl font-medium">
+                {currentView === "collections"
+                  ? "Question Banks"
+                  : selectedCollection?.name}
+              </h1>
             </div>
           </div>
         </div>
@@ -923,47 +887,33 @@ expectedAnswer: aiFormData.type === 'coding'
         {currentView === "collections" && (
           <div className="space-y-8">
             {/* Quick Stats */}
-            <div className="flex items-center justify-between gap-2 bg-[#DAE4FF] rounded-lg border border-gray-200/50 p-6">
-              <Card className="w-[33%] transition-all duration-300">
-                <CardContent className="p-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-blue-500 rounded-xl">
-                      <FolderOpen className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-blue-900">
+            <div className="flex justify-between items-center border border-gray-200 p-6">
+              <div className="grid grid-cols-3 gap-2 w-1/2">
+                <Card className="w-full transition-all duration-300">
+                  <CardContent className="p-3">
+                    <div className="text-center">
+                      <p className="text-xl font-medium">
                         {questionCollections.length}
                       </p>
-                      <p className="text-sm text-blue-600">Question Banks</p>
+                      <p className="text-sm">Question Banks</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              <Card className="w-[33%] transition-all duration-300">
-                <CardContent className="p-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-blue-500 rounded-xl">
-                      <Code className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xl font-bold text-blue-900">
+                <Card className="w-full transition-all duration-300">
+                  <CardContent className="p-3">
+                    <div className="text-center">
+                      <p className="text-xl font-medium">
                         {questionCollections.reduce(
                           (sum, bank) => sum + (bank.questionCount || 0),
                           0
                         )}
                       </p>
-                      <p className="text-sm text-blue-600">
-                        Total Questions
-                      </p>
+                      <p className="text-sm">Total Questions</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Sort By Date of Question Bank */}
-              <div className="justify-self-end flex items-center justify-end w-[33%]">
-                <p className="text-sm text-gray-600 mr-2">Sort By:</p>
                 <Select
                   value={bankFilters.sortBy}
                   onValueChange={(value) =>
@@ -973,14 +923,37 @@ expectedAnswer: aiFormData.type === 'coding'
                     }))
                   }
                 >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Sort By" />
+                  <SelectTrigger className="w-full my-auto">
+                    <SelectValue placeholder="Date Created" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="createdAt">Date Created</SelectItem>
                     <SelectItem value="name">Name</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex justify-end items-center gap-4">
+                <Button
+                  onClick={() => {
+                    fetchTemplates();
+                    setShowTemplateDialog(true);
+                  }}
+                  variant="outline"
+                  className="font-medium"
+                  size="lg"
+                >
+                  <Layers className="h-5 w-5 mr-2" />
+                  Use Template
+                </Button>
+                <Button
+                  onClick={() => setIsCollectionDialogOpen(true)}
+                  className="font-medium bg-purple-600"
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5" />
+                  Create Question Bank
+                </Button>
               </div>
             </div>
 
@@ -1016,119 +989,96 @@ expectedAnswer: aiFormData.type === 'coding'
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="flex flex-col gap-3">
                 {questionCollections.map((bank, index) => (
                   <Card
                     key={bank.id}
-                    className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-blue-500/25"
+                    className="group cursor-pointer bg-white/80"
                     onClick={() => openCollectionView(bank)}
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                          <FolderOpen className="h-6 w-6 text-white" />
+                    <CardHeader className="flex justify-between">
+                      <div className="flex justify-between">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-xl font-medium">
+                            {bank.name}
+                          </CardTitle>
+                          <div className="bg-green-100 px-2 py-1 rounded-3xl">
+                            <p className="text-xs text-green-800">Active</p>
+                          </div>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant="secondary"
-                            className="bg-blue-100 text-blue-800 border-0"
+                        <div className="flex gap-2">
+                          <Button variant={"outline"}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className="bg-red-100 text-red-600"
+                            variant={"outline"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              checkDependenciesAndDelete(bank);
+                            }}
                           >
-                            {bank.category}
-                          </Badge>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  checkDependenciesAndDelete(bank);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-
-                      <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {bank.name}
-                      </CardTitle>
                       <CardDescription className="text-gray-600 line-clamp-2">
                         {bank.description || "No description provided"}
                       </CardDescription>
                     </CardHeader>
+
                     <CardContent className="pt-0">
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <FileText className="h-4 w-4" />
-                            <span className="font-medium">
-                              {bank.questionCount || 0}
-                            </span>
-                            <span>questions</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-500">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              {new Date(bank.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {bank.tags && (
-                          <div className="flex flex-wrap gap-1">
-                            {bank.tags
-                              .split(",")
-                              .slice(0, 3)
-                              .map((tag, tagIndex) => (
-                                <Badge
-                                  key={tagIndex}
-                                  variant="outline"
-                                  className="text-xs bg-gray-50 hover:bg-gray-100 transition-colors"
-                                >
-                                  {tag.trim()}
-                                </Badge>
-                              ))}
-                            {bank.tags.split(",").length > 3 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-gray-50"
-                              >
-                                +{bank.tags.split(",").length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="pt-2 border-t border-gray-100">
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              <span>Active</span>
+                        <div className="flex justify-between items-start gap-5">
+                          <div className="flex gap-5">
+                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                              <FileText className="h-4 w-4" />
+                              <span className="font-medium">
+                                {bank.questionCount || 0} questions
+                              </span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <Users className="h-3 w-3" />
-                              <span>Shared</span>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                {new Date(bank.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="p-4 rounded-md border border-gray-200 text-center">
+                              <p>
+                                {
+                                  questions.filter(
+                                    (q) => q.questionType === "mcq"
+                                  ).length
+                                }
+                              </p>
+                              <p className="text-sm">MCQs</p>
+                            </div>
+
+                            <div className="p-4 rounded-md border border-gray-200 text-center">
+                              <p>
+                                {
+                                  questions.filter(
+                                    (q) => q.questionType === "behavioral"
+                                  ).length
+                                }
+                              </p>
+                              <p className="text-sm">Behavioral</p>
+                            </div>
+
+                            <div className="p-4 rounded-md border border-gray-200 text-center">
+                              <p>
+                                {
+                                  questions.filter(
+                                    (q) => q.questionType === "coding"
+                                  ).length
+                                }
+                              </p>
+                              <p className="text-sm">Coding</p>
                             </div>
                           </div>
                         </div>
@@ -1145,102 +1095,73 @@ expectedAnswer: aiFormData.type === 'coding'
         {currentView === "questions" && selectedCollection && (
           <div className="space-y-8">
             {/* Question Bank Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-[#CCF8FE] border border-[#CCF8FE] rounded-xl">
-                <CardContent className="p-4 flex items-center space-x-3">
-                  <div className="p-2 bg-blue-500 rounded-lg">
-                    <FileText className="h-5 w-5 text-white" />
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bborder border-gray-200 rounded-xl">
+                <CardContent className="p-4 flex justify-center items-center text-center space-x-3">
                   <div>
-                    <p className="text-xl font-bold text-blue-900">
-                      {questions.length}
-                    </p>
-                    <p className="text-sm text-blue-700">Total Questions</p>
+                    <p className="text-xl font-medium">{questions.length}</p>
+                    <p className="text-sm">Total Questions</p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#F1FFE9] border border-[#F1FFE9] rounded-xl">
-                <CardContent className="p-4 flex items-center space-x-3">
-                  <div className="p-2 bg-green-500 rounded-lg">
-                    <Code className="h-5 w-5 text-white" />
-                  </div>
+              <Card className="bborder border-gray-200 rounded-xl">
+                <CardContent className="p-4 flex justify-center items-center text-center space-x-3">
                   <div>
-                    <p className="text-xl font-bold text-green-900">
+                    <p className="text-xl font-medium">
                       {
                         questions.filter((q) => q.questionType === "coding")
                           .length
                       }
                     </p>
-                    <p className="text-sm text-green-700">Coding</p>
+                    <p className="text-sm">Coding</p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#DAE4FF] border border-[#DAE4FF] rounded-xl">
-                <CardContent className="p-4 flex items-center space-x-3">
-                  <div className="p-2 bg-purple-500 rounded-lg">
-                    <MessageSquare className="h-5 w-5 text-white" />
-                  </div>
+              <Card className="bborder border-gray-200 rounded-xl">
+                <CardContent className="p-4 flex justify-center items-center text-center space-x-3">
                   <div>
-                    <p className="text-xl font-bold text-purple-900">
+                    <p className="text-xl font-medium">
                       {
                         questions.filter((q) => q.questionType === "behavioral")
                           .length
                       }
                     </p>
-                    <p className="text-sm text-purple-700">Behavioral</p>
+                    <p className="text-sm">Behavioral</p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#FFDCFC] border border-[#FFDCFC] rounded-xl">
-                <CardContent className="p-4 flex items-center space-x-3">
-                  <div className="p-2 bg-pink-500 rounded-lg">
-                    <ListChecks className="h-5 w-5 text-white" />
-                  </div>
+              <Card className="bborder border-gray-200 rounded-xl">
+                <CardContent className="p-4 flex justify-center items-center text-center space-x-3">
                   <div>
-                    <p className="text-xl font-bold text-pink-900">
+                    <p className="text-xl font-medium">
                       {questions.filter((q) => q.questionType === "mcq").length}
                     </p>
-                    <p className="text-sm text-pink-700">MCQ</p>
+                    <p className="text-sm">MCQ</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
             {/* Enhanced Filters */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      {" "}
-                      {/* Solid blue background */}
-                      <Filter className="h-5 w-5 text-white" />
-                    </div>
-                    <CardTitle className="text-xl">Filter & Search</CardTitle>
-                  </div>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                    {questions.length} results
-                  </Badge>
+            <div className="border border-gray-200 rounded-lg p-4 flex items-center justify-center flex-col">
+              <div className="w-full flex items-center justify-between">
+                <div className="w-[45%] relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search questions..."
+                    value={questionFilters.search}
+                    onChange={(e) =>
+                      setQuestionFilters((prev) => ({
+                        ...prev,
+                        search: e.target.value,
+                      }))
+                    }
+                    className="pl-10 border-2 border-gray-200 focus:border-blue-400 transition-colors"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search questions..."
-                      value={questionFilters.search}
-                      onChange={(e) =>
-                        setQuestionFilters((prev) => ({
-                          ...prev,
-                          search: e.target.value,
-                        }))
-                      }
-                      className="pl-10 border-2 border-gray-200 focus:border-blue-400 transition-colors"
-                    />
-                  </div>
+                <div className="flex gap-3 w-[35%]">
                   <Select
                     value={questionFilters.questionType}
                     onValueChange={(value) =>
@@ -1262,35 +1183,40 @@ expectedAnswer: aiFormData.type === 'coding'
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setQuestionFilters({ questionType: "", search: "" })
-                    }
-                    className="border-2 border-gray-200 hover:border-red-300 hover:bg-red-50 transition-colors"
-                  >
-                    Clear Filters
-                  </Button>
+                  <Select>
+                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-400">
+                      <SelectValue placeholder="Select Difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Questions</SelectItem>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Enhanced Questions Display */}
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <CardTitle className="text-xl">Questions</CardTitle>
+                    <CardTitle className="text-xl font-medium">
+                      Questions
+                    </CardTitle>
                   </div>
-                  <Tabs defaultValue="table" className="w-auto">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="table">Table View</TabsTrigger>
-                      <TabsTrigger value="cards">Card View</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200">
+                      <Plus className="h-5 w-5 mr-2" />
+                      <p>Add Question</p>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white border border-gray-200">
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      <p>AI Generate</p>
+                    </div>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1340,7 +1266,7 @@ expectedAnswer: aiFormData.type === 'coding'
                     <TabsContent value="table" className="mt-0">
                       <div className="rounded-lg border border-gray-200 overflow-hidden">
                         <Table>
-                          <TableHeader className="bg-gray-50">
+                          <TableHeader className="bg-purple-100">
                             <TableRow>
                               <TableHead className="font-semibold">
                                 Type
@@ -1402,9 +1328,7 @@ expectedAnswer: aiFormData.type === 'coding'
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge
-                                    className={`${getDifficultyColor(question.difficultyLevel)} font-medium`}
-                                  >
+                                  <Badge className={"font-medium"}>
                                     {question.difficultyLevel
                                       .charAt(0)
                                       .toUpperCase() +
@@ -1412,38 +1336,45 @@ expectedAnswer: aiFormData.type === 'coding'
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  {question.tags && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {question.tags
+                                  {question.tags ? (
+                                    (() => {
+                                      const tags = question.tags
                                         .split(",")
-                                        .slice(0, 2)
-                                        .map((tag, tagIndex) => (
-                                          <Badge
-                                            key={tagIndex}
-                                            variant="outline"
-                                            className="text-xs bg-gray-50 hover:bg-gray-100 transition-colors"
-                                          >
-                                            {tag.trim()}
-                                          </Badge>
-                                        ))}
-                                      {question.tags.split(",").length > 2 && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs bg-gray-50"
-                                        >
-                                          +{question.tags.split(",").length - 2}
-                                        </Badge>
-                                      )}
-                                    </div>
+                                        .map((tag) => tag.trim());
+                                      return (
+                                        <div className="flex flex-wrap gap-1">
+                                          {tags.slice(0, 2).map((tag, i) => (
+                                            <Badge
+                                              key={i}
+                                              variant="outline"
+                                              className="text-xs bg-gray-50 hover:bg-gray-100 transition-colors"
+                                            >
+                                              {tag}
+                                            </Badge>
+                                          ))}
+                                          {tags.length > 2 && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs bg-gray-50"
+                                            >
+                                              +{tags.length - 2}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })()
+                                  ) : (
+                                    <span>Tags</span>
                                   )}
                                 </TableCell>
+
                                 <TableCell>
                                   <div className="flex justify-center space-x-1">
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => openEditDialog(question)}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100"
+                                      className="border border-gray-200"
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
@@ -1453,7 +1384,7 @@ expectedAnswer: aiFormData.type === 'coding'
                                       onClick={() =>
                                         handleDeleteQuestion(question.id)
                                       }
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 text-red-600"
+                                      className="border border-gray-200 hover:bg-red-100 text-red-600"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -1577,7 +1508,10 @@ expectedAnswer: aiFormData.type === 'coding'
         )}
 
         {/* Question Bank Dialog */}
-        <Dialog open={isCollectionDialogOpen} onOpenChange={setIsCollectionDialogOpen}>
+        <Dialog
+          open={isCollectionDialogOpen}
+          onOpenChange={setIsCollectionDialogOpen}
+        >
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Question Bank</DialogTitle>
@@ -1908,9 +1842,15 @@ expectedAnswer: aiFormData.type === 'coding'
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={INTERVIEW_TYPES.MCQ}>MCQ</SelectItem>
-                      <SelectItem value={INTERVIEW_TYPES.CODING}>Coding</SelectItem>
-                      <SelectItem value={INTERVIEW_TYPES.BEHAVIORAL}>Behavioral</SelectItem>
-                      <SelectItem value={INTERVIEW_TYPES.COMBO}>Combo (Mixed Types)</SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.CODING}>
+                        Coding
+                      </SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.BEHAVIORAL}>
+                        Behavioral
+                      </SelectItem>
+                      <SelectItem value={INTERVIEW_TYPES.COMBO}>
+                        Combo (Mixed Types)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2058,25 +1998,27 @@ expectedAnswer: aiFormData.type === 'coding'
                     <CardTitle className="text-lg">{template.name}</CardTitle>
                     <CardDescription>{template.description}</CardDescription>
                   </CardHeader>
-            <CardContent>
-  <div className="space-y-2">
-    <div className="flex items-center gap-2">
-      <Badge variant="outline">{template.category}</Badge>
-      {template.subCategory && (
-        <Badge variant="secondary">{template.subCategory}</Badge>
-      )}
-    </div>
-    <div className="text-sm text-gray-600">
-      <div>
-Question Types: {(template.questionTypes || []).join(" & ")}
-      </div>
-      <div>
-Target Roles: {(template.targetRoles || []).join(" & ")}
-      </div>
-      <div>Est. Questions: {template.estimatedQuestions}</div>
-    </div>
-  </div>
-</CardContent>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{template.category}</Badge>
+                        {template.subCategory && (
+                          <Badge variant="secondary">
+                            {template.subCategory}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <div>
+                          Interview Types: {template.interviewTypes.join(", ")}
+                        </div>
+                        <div>
+                          Target Roles: {template.targetRoles.join(", ")}
+                        </div>
+                        <div>Est. Questions: {template.estimatedQuestions}</div>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>

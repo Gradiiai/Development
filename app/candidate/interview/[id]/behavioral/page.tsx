@@ -756,10 +756,11 @@ export default function BehavioralInterviewPage({ params }: BehavioralInterviewP
                         {/* Speech Recognition Area */}
                         <div className="border rounded-lg p-4 min-h-[200px] bg-gray-50">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-700">
+                            <p>Coming Soon</p>
+                            {/* <p className="text-sm font-medium text-gray-700">
                               {listening ? 'Listening...' : 'Click to start speaking'}
-                            </p>
-                            <div className="flex space-x-2">
+                            </p> */}
+                            {/* <div className="flex space-x-2">
                               {!listening ? (
                                 <Button
                                   size="sm"
@@ -780,7 +781,7 @@ export default function BehavioralInterviewPage({ params }: BehavioralInterviewP
                                   Stop
                                 </Button>
                               )}
-                            </div>
+                            </div> */}
                           </div>
                           
                           <div className="text-base leading-relaxed text-gray-900">
