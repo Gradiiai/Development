@@ -137,6 +137,7 @@ interface QuestionCollectionTemplate {
   description: string;
   category: string;
   subCategory?: string;
+    questionTypes: string[];
   interviewTypes: string[];
   targetRoles: string[];
   difficultyLevels: string[];
@@ -148,6 +149,8 @@ export default function QuestionCollectionPage() {
   const router = useRouter();
   
   // Main state
+    const [questionBanks, setQuestionBanks] = useState<QuestionCollectionTemplate[]>([]);
+
   const [questionCollections, setQuestionCollections] = useState<QuestionCollection[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,6 +228,7 @@ const[isGenerate, setIsGenerate] = useState(false);
     difficulty: 'medium',
     topic: '',
     category: '',
+    languages: ['javascript'],
   });
 
   useEffect(() => {
@@ -287,6 +291,26 @@ const[isGenerate, setIsGenerate] = useState(false);
       setQuestionsLoading(false);
     }
   };
+
+    const fetchQuestionBanks = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/content/questions/banks');
+      const data = await response.json();
+
+      if (data.success) {
+        setQuestionBanks(data.data);
+      } else {
+        toast.error(data.error || 'Failed to fetch question banks');
+      }
+    } catch (error) {
+      console.error('Error fetching question banks:', error);
+      toast.error('Failed to fetch question banks');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleCreateQuestionCollection = async () => {
     try {
@@ -447,7 +471,7 @@ const[isGenerate, setIsGenerate] = useState(false);
   // Function to fetch templates
   const fetchTemplates = async () => {
     try {
-      const response = await fetch('/api/content/question-bank-templates');
+      const response = await fetch('/api/content/templates');
       const data = await response.json();
       
       if (data.success) {
@@ -459,7 +483,7 @@ const[isGenerate, setIsGenerate] = useState(false);
   };
 
   // Function to create question bank from template
- const createFromTemplate = async (template: QuestionCollectionTemplate, customName?: string, customDescription?: string) => {
+const createFromTemplate = async (template: QuestionCollectionTemplate, customName?: string, customDescription?: string) => {
   try {
     const response = await fetch('/api/content/question-bank-templates', {
       method: 'POST',
@@ -477,12 +501,12 @@ const[isGenerate, setIsGenerate] = useState(false);
       toast.success(data.message || 'Question bank created from template');
       setShowTemplateDialog(false);
       setSelectedTemplate(null);
-      fetchQuestionCollections();
+      fetchQuestionBanks();
 
       if (data.data?.id) {
         const questionBankId = data.data.id;
 
-        for (const type of template.interviewTypes) {
+        for (const type of template.questionTypes) {
           let endpoint = '';
           switch (type) {
             case 'coding':
@@ -522,27 +546,27 @@ const[isGenerate, setIsGenerate] = useState(false);
                   questionType: 'coding',
                   question: q.title + '\n\n' + q.description,
                   expectedAnswer: q.explanation,
-                  category: template.name || 'Technical',
+                  category: 'Technical',
                   difficultyLevel: q.difficulty || 'medium',
-                  collectionId: questionBankId,
+                  questionBankId: questionBankId,
                 };
               } else if (type === 'mcq') {
                 return {
                   questionType: 'mcq',
                   question: q.question,
                   expectedAnswer: q.correctAnswer,
-                  category: template.name || 'Technical',
+                  category: 'Technical',
                   difficultyLevel: q.difficulty || 'medium',
-                  collectionId: questionBankId,
+                  questionBankId: questionBankId,
                 };
               } else if (type === 'behavioral') {
                 return {
                   questionType: 'behavioral',
                   question: q.question,
                   expectedAnswer: q.purpose,
-                  category: template.name || 'Behavioral',
+                  category: 'Behavioral',
                   difficultyLevel: 'medium',
-                  collectionId: questionBankId,
+                  questionBankId: questionBankId,
                 };
               }
             });
@@ -569,6 +593,8 @@ const[isGenerate, setIsGenerate] = useState(false);
     toast.error('Failed to create question bank from template');
   }
 };
+const preferredLanguage = aiFormData.languages?.[0]?.toLowerCase() || 'javascript';
+
   const handleGenerateQuestions = async () => {
     if (!selectedCollection) return;
     
@@ -673,7 +699,9 @@ if (response.ok) {
           questionsToSave = aiQuestions.map((q: any) => ({
             questionType: aiFormData.type,
             question: aiFormData.type === 'coding' ? q.title + '\n\n' + q.description : q.question || q.title,
-            expectedAnswer: q.explanation || q.purpose || q.correctAnswer,
+expectedAnswer: aiFormData.type === 'coding'
+  ? q.solution?.[preferredLanguage] || Object.values(q.solution || {})[0] || q.explanation
+  : q.explanation || q.purpose || q.correctAnswer,
             category: aiFormData.category || 'General',
             difficultyLevel: q.difficulty || 'medium',
             collectionId: selectedCollection.id
@@ -2030,27 +2058,25 @@ if (response.ok) {
                     <CardTitle className="text-lg">{template.name}</CardTitle>
                     <CardDescription>{template.description}</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{template.category}</Badge>
-                        {template.subCategory && (
-                          <Badge variant="secondary">
-                            {template.subCategory}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <div>
-                          Interview Types: {template.interviewTypes.join(", ")}
-                        </div>
-                        <div>
-                          Target Roles: {template.targetRoles.join(", ")}
-                        </div>
-                        <div>Est. Questions: {template.estimatedQuestions}</div>
-                      </div>
-                    </div>
-                  </CardContent>
+            <CardContent>
+  <div className="space-y-2">
+    <div className="flex items-center gap-2">
+      <Badge variant="outline">{template.category}</Badge>
+      {template.subCategory && (
+        <Badge variant="secondary">{template.subCategory}</Badge>
+      )}
+    </div>
+    <div className="text-sm text-gray-600">
+      <div>
+Question Types: {(template.questionTypes || []).join(" & ")}
+      </div>
+      <div>
+Target Roles: {(template.targetRoles || []).join(" & ")}
+      </div>
+      <div>Est. Questions: {template.estimatedQuestions}</div>
+    </div>
+  </div>
+</CardContent>
                 </Card>
               ))}
             </div>
