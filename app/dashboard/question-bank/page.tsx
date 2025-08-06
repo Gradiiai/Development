@@ -155,7 +155,10 @@ interface QuestionCollectionTemplate {
   targetRoles: string[];
   difficultyLevels: string[];
   estimatedQuestions: number;
+  questionTypes: string[];
+
 }
+
 
 export default function QuestionCollectionPage() {
   const { data: session } = useSession();
@@ -246,6 +249,8 @@ export default function QuestionCollectionPage() {
     difficulty: "medium",
     topic: "",
     category: "",
+    languages: ['javascript'],
+
   });
 
   useEffect(() => {
@@ -469,7 +474,7 @@ export default function QuestionCollectionPage() {
           // Conflict - show detailed error information
           toast.error(
             data.details?.message ||
-              "Cannot delete question bank - it is in use"
+            "Cannot delete question bank - it is in use"
           );
         } else {
           toast.error(data.error || "Failed to delete question bank");
@@ -566,27 +571,27 @@ export default function QuestionCollectionPage() {
                     questionType: "coding",
                     question: q.title + "\n\n" + q.description,
                     expectedAnswer: q.explanation,
-                    category: template.name || "Technical",
+                    category: "Technical",
                     difficultyLevel: q.difficulty || "medium",
-                    collectionId: questionBankId,
+                    questionBankId: questionBankId,
                   };
                 } else if (type === "mcq") {
                   return {
                     questionType: "mcq",
                     question: q.question,
                     expectedAnswer: q.correctAnswer,
-                    category: template.name || "Technical",
+                    category: "Technical",
                     difficultyLevel: q.difficulty || "medium",
-                    collectionId: questionBankId,
+                    questionBankId: questionBankId,
                   };
                 } else if (type === "behavioral") {
                   return {
                     questionType: "behavioral",
                     question: q.question,
                     expectedAnswer: q.purpose,
-                    category: template.name || "Behavioral",
+                    category: "Behavioral",
                     difficultyLevel: "medium",
-                    collectionId: questionBankId,
+                    questionBankId: questionBankId,
                   };
                 }
               });
@@ -615,6 +620,8 @@ export default function QuestionCollectionPage() {
       toast.error("Failed to create question bank from template");
     }
   };
+  const preferredLanguage = aiFormData.languages?.[0]?.toLowerCase() || 'javascript';
+
   const handleGenerateQuestions = async () => {
     if (!selectedCollection) return;
 
@@ -730,7 +737,9 @@ export default function QuestionCollectionPage() {
               aiFormData.type === "coding"
                 ? q.title + "\n\n" + q.description
                 : q.question || q.title,
-            expectedAnswer: q.explanation || q.purpose || q.correctAnswer,
+            expectedAnswer: aiFormData.type === 'coding'
+              ? q.solution?.[preferredLanguage] || Object.values(q.solution || {})[0] || q.explanation
+              : q.explanation || q.purpose || q.correctAnswer,
             category: aiFormData.category || "General",
             difficultyLevel: q.difficulty || "medium",
             collectionId: selectedCollection.id,
@@ -2003,22 +2012,21 @@ export default function QuestionCollectionPage() {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{template.category}</Badge>
                         {template.subCategory && (
-                          <Badge variant="secondary">
-                            {template.subCategory}
-                          </Badge>
+                          <Badge variant="secondary">{template.subCategory}</Badge>
                         )}
                       </div>
                       <div className="text-sm text-gray-600">
                         <div>
-                          Interview Types: {template.interviewTypes.join(", ")}
+                          Question Types: {(template.questionTypes || []).join(" & ")}
                         </div>
                         <div>
-                          Target Roles: {template.targetRoles.join(", ")}
+                          Target Roles: {(template.targetRoles || []).join(" & ")}
                         </div>
                         <div>Est. Questions: {template.estimatedQuestions}</div>
                       </div>
                     </div>
                   </CardContent>
+
                 </Card>
               ))}
             </div>
