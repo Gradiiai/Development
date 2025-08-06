@@ -116,6 +116,9 @@ export default function CandidatesPage() {
 
   // Add progress state for file upload progress bars
   const [progress, setProgress] = useState<{ [fileName: string]: number }>({});
+  
+  // Add state for tracking recalculating scores
+  const [recalculatingScores, setRecalculatingScores] = useState<Set<string>>(new Set());
 
   // Handle progress animation for all files
   useEffect(() => {
@@ -330,6 +333,41 @@ export default function CandidatesPage() {
       setProgress(initialProgress);
       
       handleResumeUpload(files);
+    }
+  };
+
+  // Recalculate score functionality
+  const handleRecalculateScore = async (candidateId: string) => {
+    setRecalculatingScores(prev => new Set(prev).add(candidateId));
+    
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/talent-fit-score`, {
+        method: 'POST',
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Update the candidate's scores in local state
+        setCandidates(prev => prev.map(candidate => 
+          candidate.id === candidateId 
+            ? { ...candidate, talentFitScore: result.data.talentFitScore }
+            : candidate
+        ));
+        
+        toast.success(`Talent fit score recalculated successfully: ${result.data.talentFitScore}%`);
+      } else {
+        toast.error(result.error || 'Failed to recalculate talent fit score');
+      }
+    } catch (error) {
+      console.error('Error recalculating score:', error);
+      toast.error('Network error occurred while recalculating score');
+    } finally {
+      setRecalculatingScores(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(candidateId);
+        return newSet;
+      });
     }
   };
 
@@ -577,9 +615,21 @@ export default function CandidatesPage() {
 
                             {/* Talent Fit Score, Resume and View Profile Buttons */}
                             <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                              <div className="flex items-center gap-1 sm:gap-2 text-gray-500 cursor-pointer text-xs sm:text-sm">
-                                <RefreshCcw size={14} />
-                                <p>Recalculate</p>
+                              <div 
+                                className="flex items-center gap-1 sm:gap-2 text-gray-500 hover:text-gray-700 cursor-pointer text-xs sm:text-sm transition-colors"
+                                onClick={() => handleRecalculateScore(candidate.id)}
+                              >
+                                {recalculatingScores.has(candidate.id) ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600"></div>
+                                    <p>Recalculating...</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCcw size={14} />
+                                    <p>Recalculate</p>
+                                  </>
+                                )}
                               </div>
                               {candidate.talentFitScore && (
                                 <div className="relative group flex items-center gap-1 sm:gap-2 text-xs">
