@@ -1212,7 +1212,7 @@ export default function QuestionCollectionPage() {
                       <Plus className="h-5 w-5 mr-2" />
                       <p>Add Question</p>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white border border-gray-200">
+                    <div onClick={() => setIsGenerating(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white border border-gray-200">
                       <Sparkles className="h-5 w-5 mr-2" />
                       <p>AI Generate</p>
                     </div>

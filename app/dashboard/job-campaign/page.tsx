@@ -186,43 +186,41 @@ export default function JobCampaignsPage() {
   // Render loading state
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <span className="ml-2">Loading job campaigns...</span>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          <span className="ml-2 text-sm md:text-base">Loading job campaigns...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto">
+    <div className="min-h-screen flex flex-col">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {/* Header section */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-5">
-            <h1 className="text-3xl font-medium text-gray-900">Job Campaigns</h1>
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl font-medium text-gray-900">Job Campaigns</h1>
           </div>
 
           {/* Filters section */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
+          <Card className="mt-4 sm:mt-6">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-3">
+                <div className="flex-1 min-w-0">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       placeholder="Search campaigns..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 w-full"
                     />
                   </div>
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-48">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -234,7 +232,7 @@ export default function JobCampaignsPage() {
                   </SelectContent>
                 </Select>
                 <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger className="w-full md:w-48">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="Filter by department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -246,7 +244,10 @@ export default function JobCampaignsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleCreateNew} className="bg-purple-600 hover:bg-purple-700">
+                <Button
+                  onClick={handleCreateNew}
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Campaign
                 </Button>
@@ -257,25 +258,32 @@ export default function JobCampaignsPage() {
 
         {/* Campaigns grid section */}
         {filteredCampaigns.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
-            <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-8 sm:py-12"
+          >
+            <Briefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
               {campaigns.length === 0 ? "No job campaigns yet" : "No campaigns match your filters"}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
               {campaigns.length === 0
                 ? "Create your first job campaign to start recruiting candidates"
                 : "Try adjusting your search or filter criteria"}
             </p>
             {campaigns.length === 0 && (
-              <Button onClick={handleCreateNew} className="bg-purple-600 hover:bg-purple-700">
+              <Button
+                onClick={handleCreateNew}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Your First Campaign
               </Button>
             )}
           </motion.div>
         ) : (
-          <div className="flex-col items-center">
+          <div className="flex flex-col gap-3">
             {filteredCampaigns.map((campaign, index) => (
               <motion.div
                 key={campaign.id}
@@ -283,25 +291,30 @@ export default function JobCampaignsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="cursor-pointer group mb-3" onClick={() => handleViewCampaign(campaign.id)}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex gap-4 items-center">
-                          <CardTitle className="text-lg font-semibold text-gray-900 transition-colors">
+                <Card className="cursor-pointer group" onClick={() => handleViewCampaign(campaign.id)}>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 transition-colors">
                             {campaign.campaignName}
                           </CardTitle>
-                          <Badge className={`${getStatusColor(campaign.status)} border-0`}>
-                            {campaign.status}
-                          </Badge>
-                          <div className="flex items-center text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
-                            <Users className="w-4 h-4 mr-1" />
-                            {campaign.candidatesCount || 0} candidates
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 sm:mt-0">
+                            <Badge className={`${getStatusColor(campaign.status)} border-0`}>
+                              {campaign.status}
+                            </Badge>
+                            <div
+                              className="flex items-center text-xs sm:text-sm text-gray-600"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              {campaign.candidatesCount || 0} candidates
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{campaign.jobTitle}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">{campaign.jobTitle}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -313,7 +326,14 @@ export default function JobCampaignsPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEditCampaign(campaign.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditCampaign(campaign.id);
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
@@ -327,57 +347,55 @@ export default function JobCampaignsPage() {
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
-                        <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
                           <Plus className="w-4 h-4 text-white" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex justify-between items-center">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex gap-4">
-                        <div className="flex items-center text-sm text-gray-600">
+                  <CardContent className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                    <div className="flex flex-col gap-2 sm:gap-3">
+                      <div className="flex flex-wrap gap-2 sm:gap-4">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600">
                           <Building2 className="w-4 h-4 mr-2" />
                           {campaign.department}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600">
                           <MapPin className="w-4 h-4 mr-2" />
                           {campaign.location}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
+                        <div className="flex items-center text-xs sm:text-sm text-gray-600">
                           <MapPin className="w-4 h-4 mr-2" />
                           {campaign.experienceLevel}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Created {new Date(campaign.createdAt).toLocaleDateString()}
-                        </div>
+                      <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Created {new Date(campaign.createdAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="flex gap-4">
-                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 w-full sm:w-auto">
+                      <div className="p-2 sm:p-4 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg text-center">
                         <p>{campaign.candidatesCount || 0}</p>
                         <p>Applied</p>
                       </div>
-                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
-                        {/* <p>{campaign.screeningCount || 0}</p> */}
+                      <div className="p-2 sm:p-4 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg text-center">
                         <p>0</p>
                         <p>Screening</p>
                       </div>
-                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
-                        {/* <p>{campaign.shortlistedCount || 0}</p> */}
+                      <div className="p-2 sm:p-4 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg text-center">
                         <p>0</p>
                         <p>Shortlisted</p>
                       </div>
-                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
-                        {/* <p>{campaign.interviewedCount || 0}</p> */}
+                      <div className="p-2 sm:p-4 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg text-center">
                         <p>0</p>
                         <p>Interviewed</p>
                       </div>
-                      <div className="p-4 text-sm font-medium border border-gray-200 rounded-lg text-center">
-                        {/* <p>{campaign.hiredCount || 0}</p> */}
+                      <div className="p-2 sm:p-4 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg text-center">
                         <p>0</p>
                         <p>Hired</p>
                       </div>

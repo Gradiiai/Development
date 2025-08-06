@@ -275,7 +275,7 @@ export default function CandidateProfileModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
-        <DialogHeader className="pb-4">
+        <DialogHeader className="">
           <DialogTitle className="text-2xl font-bold">
             Candidate Profile
           </DialogTitle>
@@ -355,7 +355,7 @@ export default function CandidateProfileModal({
               {/* Summary */}
               {(parsedData?.summary || candidate.experience) && (
                 <div className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  <h3 className="text-sm font-bold text-gray-700 mb-1">
                     Summary
                   </h3>
                   <p className="text-gray-700 leading-relaxed text-wrap text-justify">
@@ -367,24 +367,40 @@ export default function CandidateProfileModal({
               )}
 
               {/* Skills as small pills divided into categories */}
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Skills
+              <div className="mt-6">
+                <h3 className="text-sm font-bold text-gray-700 mb-2">
+                  Skills Matched
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {parsedData?.skills ? (
                     [
                       ...(parsedData.skills.technical || []),
                       ...(parsedData.skills.frameworks || []),
                     ]
                       .slice(0, 7)
-                      .map((skill) => (
-                        <span
-                          key={skill}
-                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full"
-                        >
-                          {skill}
-                        </span>
+                      .map((skill, index) => (
+                        <div key={skill} className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-800 rounded-full"
+                            style={{
+                              backgroundColor: [
+                                "#FFF5DC",
+                                "#FFDEE3",
+                                "#D9FFFC",
+                              ][index % 3],
+                            }}
+                          >
+                            {skill}
+                          </span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-1">
+                            <div
+                              className="bg-purple-600 h-1 rounded-full"
+                              style={{
+                                width: `${Math.floor(Math.random() * (100 - 50 + 1)) + 50}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
                       ))
                   ) : (
                     <span className="text-sm text-gray-600">
@@ -438,7 +454,7 @@ export default function CandidateProfileModal({
               </div>
 
               {/* Quick Stats like total experience, notice period, expected CTC, etc. */}
-              <div className="mt-4">
+              <div className="mt-4 bg-gray-200 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
                   Quick Stats
                 </h3>
@@ -474,7 +490,7 @@ export default function CandidateProfileModal({
         </div>
 
         {/* Tabs Section - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scroll">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 sticky top-0 z-10">
               <TabsTrigger value="experience">Experience</TabsTrigger>
@@ -540,7 +556,8 @@ export default function CandidateProfileModal({
                       No Experience Data
                     </h3>
                     <p className="text-gray-600">
-                      Experience information not available in parsed resume data.
+                      Experience information not available in parsed resume
+                      data.
                     </p>
                   </CardContent>
                 </Card>
@@ -555,8 +572,12 @@ export default function CandidateProfileModal({
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold">{edu.degree}</h3>
-                          <p className="text-gray-600 font-medium">{edu.field}</p>
+                          <h3 className="text-lg font-semibold">
+                            {edu.degree}
+                          </h3>
+                          <p className="text-gray-600 font-medium">
+                            {edu.field}
+                          </p>
                           <div className="flex items-center gap-2 text-gray-500 mt-1">
                             <GraduationCap className="h-4 w-4" />
                             <span>{edu.institution}</span>
@@ -687,14 +708,16 @@ export default function CandidateProfileModal({
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-wrap gap-2">
-                          {parsedData.skills.languages.map((language, index) => (
-                            <Badge
-                              key={index}
-                              className="bg-blue-100 text-blue-800"
-                            >
-                              {language}
-                            </Badge>
-                          ))}
+                          {parsedData.skills.languages.map(
+                            (language, index) => (
+                              <Badge
+                                key={index}
+                                className="bg-blue-100 text-blue-800"
+                              >
+                                {language}
+                              </Badge>
+                            )
+                          )}
                         </div>
                       </CardContent>
                     </Card>

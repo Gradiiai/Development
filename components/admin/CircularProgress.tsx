@@ -25,7 +25,7 @@ const CircularProgress = ({ score }: CircularProgressProps) => {
       />
       {/* Progress circle */}
       <circle
-        stroke="#3b82f6" // Tailwind blue-500
+        stroke="#43A047" // Tailwind blue-500
         fill="transparent"
         strokeWidth={stroke}
         strokeLinecap="round"
@@ -41,7 +41,7 @@ const CircularProgress = ({ score }: CircularProgressProps) => {
         y="50%"
         textAnchor="middle"
         dy=".3em"
-        className="text-[10px] fill-blue-800 font-semibold cursor-pointer"
+        className="text-[10px] fill-black font-semibold cursor-pointer"
       >
         {score}%
       </text>

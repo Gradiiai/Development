@@ -173,7 +173,7 @@ export default function DashboardClient({
           <CardTitle className="font-medium">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/dashboard/job-campaign">
               <div className="group cursor-pointer">
                 <div className="bg-purple-200 rounded-lg p-4 flex flex-col items-center justify-center gap-2">
