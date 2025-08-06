@@ -693,15 +693,15 @@ export default function QuestionCollectionPage() {
 
         if (aiFormData.type === "combo") {
           // Handle combo questions
-          if (aiQuestions.coding) {
-            questionsToSave.push(
-              ...aiQuestions.coding.map((q: any) => ({
-                questionType: "coding",
-                question: q.title + "\n\n" + q.description,
-                expectedAnswer: q.explanation,
-                category: aiFormData.category || "Technical",
-                difficultyLevel: q.difficulty || "medium",
-                collectionId: selectedCollection.id,
+         if (aiQuestions.coding) {
+  questionsToSave.push(
+    ...aiQuestions.coding.map((q: any) => ({
+      questionType: "coding",
+      question: q.title + "\n\n" + q.description,
+      expectedAnswer: q.solutions?.[preferredLanguage] || Object.values(q.solutions || {})[0] || q.explanation,
+      category: aiFormData.category || "Technical",
+      difficultyLevel: q.difficulty || "medium",
+      collectionId: selectedCollection.id
               }))
             );
           }

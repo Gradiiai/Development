@@ -39,16 +39,17 @@ Format the response as a JSON object with three arrays:
   "coding": [
     {
       "title": "Question title",
-      "description": "Problem description",
-      "examples": [{"input": "example input", "output": "expected output", "explanation": "why this output"}],
-      "difficulty": "Easy | Medium | Hard",
-      "constraints": ["constraint 1", "constraint 2"],
-      "hints": ["hint 1", "hint 2"],
-      "solutions": {
-        "python": "def solution():\n    pass",
-        "php": "<?php\nfunction solution() {\n    // code\n}\n?>",
-        "typescript": "function solution(): any {\n    // code\n}"
+    "description": "Problem description",
+    "examples": [{"input": "example input", "output": "expected output", "explanation": "why this output"}],
+    "difficulty": "Easy | Medium | Hard",
+    "constraints": ["constraint 1", "constraint 2"],
+    "hints": ["hint 1", "hint 2"],
+    "solutions": {
+      "javascript": "function solution() {\n    // Complete solution with proper code formatting\n}",
+      "python": "def solution():\n    # Complete solution with proper code formatting\n    pass",
+      "typescript": "function solution(): any {\n    // Complete solution with proper code formatting\n}"
       }
+         "explanation": "Detailed explanation of the solution approach"
     }
   ],
   "behavioral": [
