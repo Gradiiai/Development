@@ -15,8 +15,7 @@ interface EmailTemplateData {
   interviewType?: "behavioral" | "coding" | "combo";
   additionalInfo?: string;
   candidateLoginLink?: string;
-  // Removed tempPassword field
-  isNewCandidate?: boolean; // Flag to indicate if this is a new candidate
+  isNewCandidate?: boolean;
 }
 
 // OTP Email Template Data
@@ -38,10 +37,11 @@ interface AuthEmailData {
  * Generates a professional interview invitation email template
  * Features:
  * - Responsive design for mobile and desktop
- * - Professional branding with Gradii colors
+ * - Professional branding with white, black, and purple-600 colors
  * - Clear call-to-action button
  * - Accessible HTML structure
  * - Inline CSS for maximum email client compatibility
+ * - General Sans font with gradients and animations
  */
 export const generateInterviewEmailTemplate = (data: EmailTemplateData): string => {
   const {
@@ -53,7 +53,9 @@ export const generateInterviewEmailTemplate = (data: EmailTemplateData): string 
     interviewMode,
     interviewLink,
     interviewType = "behavioral",
-    additionalInfo
+    additionalInfo,
+    candidateLoginLink,
+    isNewCandidate
   } = data;
 
   return `
@@ -63,203 +65,166 @@ export const generateInterviewEmailTemplate = (data: EmailTemplateData): string 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Gradii - Interview Invitation - ${jobPosition}</title>
-    <!--[if mso]>
-    <noscript>
-        <xml>
-            <o:OfficeDocumentSettings>
-                <o:PixelsPerInch>96</o:PixelsPerInch>
-            </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-    <![endif]-->
+    <title>Interview Invitation - ${jobPosition}</title>
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'General Sans', sans-serif;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-fadeInUp {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .animate-delay-1 { animation-delay: 0.2s; }
+        .animate-delay-2 { animation-delay: 0.4s; }
+        .animate-delay-3 { animation-delay: 0.6s; }
+        .hover-pulse {
+            transition: transform 0.3s ease;
+        }
+        .hover-pulse:hover {
+            animation: pulse 0.5s ease-in-out;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .content {
+                padding: 20px !important;
+            }
+            .header {
+                padding: 30px 20px !important;
+            }
+            .cta-button {
+                padding: 12px 20px !important;
+                font-size: 14px !important;
+            }
+            .details-table td {
+                display: block !important;
+                width: 100% !important;
+                padding: 4px 0 !important;
+            }
+        }
+        @media only screen and (max-width: 480px) {
+            .header h1 {
+                font-size: 20px !important;
+            }
+            .main-title {
+                font-size: 18px !important;
+            }
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #334155;">
-    <!-- Email Container -->
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
+<body class="bg-white text-black">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff;">
         <tr>
             <td align="center" style="padding: 20px 0;">
-                <!-- Main Email Content -->
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); overflow: hidden;">
-                    
-                    <!-- Header Section -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                     <tr>
-                        <td style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%); padding: 40px 30px; text-align: center;">
-                            <!-- Logo/Brand -->
-                            <div style="margin-bottom: 20px;">
-                                <div style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); padding: 12px 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                                    <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
-                                        🤖 Gradii
-                                    </h1>
+                        <td class="header bg-gradient-to-r from-white to-purple-600/10" style="padding: 24px; text-align: left;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <img src="${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/Gradii-logo.jpg" alt="${companyName} Logo" style="height: 40px;">
+                                <div style="border-left: 4px solid #7c3aed; padding-left: 16px;">
+                                    <h1 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 600;">Interview Invitation</h1>
+                                    <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">${companyName}</p>
                                 </div>
                             </div>
-                            <h2 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; line-height: 1.3;">
-                                Interview Invitation
-                            </h2>
-                            <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">
-                                You're one step closer to joining our team!
-                            </p>
                         </td>
                     </tr>
-                    
-                    <!-- Main Content -->
                     <tr>
-                        <td style="padding: 40px 30px;">
-                            <!-- Greeting -->
-                            <h3 style="margin: 0 0 20px 0; color: #1e293b; font-size: 20px; font-weight: 600;">
-                                Hi ${candidateName},
-                            </h3>
-                            
-                            <!-- Main Message -->
-                            <p style="margin: 0 0 25px 0; color: #475569; font-size: 16px; line-height: 1.6;">
-                                We're excited to invite you to your upcoming ${interviewType === 'coding' ? 'coding ' : interviewType === 'combo' ? 'comprehensive ' : ''}interview for the <strong style="color: #0d9488;">${jobPosition}</strong> position at <strong style="color: #0d9488;">${companyName}</strong>.
+                        <td class="content animate-fadeInUp" style="padding: 24px;">
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">Dear ${candidateName},</p>
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">
+                                Thank you for applying for the <strong style="color: #7c3aed;">${jobPosition}</strong> at <strong style="color: #7c3aed;">${companyName}</strong>. We were impressed with your application and are excited to invite you to a ${interviewType === 'coding' ? 'coding' : interviewType === 'combo' ? 'comprehensive' : 'behavioral'} interview.
                             </p>
-                            
-                            <!-- Interview Details Card -->
-                            <div style="background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%); border: 1px solid #a7f3d0; border-radius: 12px; padding: 25px; margin: 25px 0;">
-                                <h4 style="margin: 0 0 20px 0; color: #065f46; font-size: 18px; font-weight: 600;">
-                                    ${interviewType === 'coding' ? '💻' : interviewType === 'combo' ? '🎯' : '📋'} Interview Details
-                                </h4>
-                                
-                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                    <tr>
-                                        <td style="padding: 8px 0; vertical-align: top; width: 80px;">
-                                            <span style="color: #059669; font-weight: 600; font-size: 16px;">📅</span>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top; width: 80px;">
-                                            <strong style="color: #065f46; font-size: 14px;">Date:</strong>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #374151; font-size: 14px;">${interviewDate}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #059669; font-weight: 600; font-size: 16px;">🕒</span>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <strong style="color: #065f46; font-size: 14px;">Time:</strong>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #374151; font-size: 14px;">${interviewTime}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #059669; font-weight: 600; font-size: 16px;">📍</span>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <strong style="color: #065f46; font-size: 14px;">Mode:</strong>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #374151; font-size: 14px;">${interviewMode}</span>
-                                        </td>
-                                    </tr>
-                                    ${additionalInfo ? `<tr>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #059669; font-weight: 600; font-size: 16px;">${interviewType === 'coding' ? '⚙️' : interviewType === 'combo' ? '🔧' : 'ℹ️'}</span>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <strong style="color: #065f46; font-size: 14px;">Additional Info:</strong>
-                                        </td>
-                                        <td style="padding: 8px 0; vertical-align: top;">
-                                            <span style="color: #374151; font-size: 14px;">${additionalInfo}</span>
-                                        </td>
-                                    </tr>` : ''}
-                                </table>
-                            </div>
-                            
-                            <!-- Candidate Portal Section -->
-                            <div style="background: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 100%); border: 1px solid #c084fc; border-radius: 12px; padding: 25px; margin: 25px 0;">
-                                <h4 style="margin: 0 0 15px 0; color: #7c3aed; font-size: 18px; font-weight: 600;">
-                                    🔐 Your Candidate Portal
-                                </h4>
-                                <p style="margin: 0 0 20px 0; color: #6b46c1; font-size: 14px; line-height: 1.5;">
-                                    Access your dedicated candidate dashboard to view your resume, interview details, and start your interview when ready.
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">
+                                Below are the details of your interview:
+                            </p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="details-table" style="background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid #c084fc; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                                <tr>
+                                    <td style="padding: 8px 0; vertical-align: top; width: 80px;">
+                                        <strong style="color: #6b46c1; font-size: 14px;">Date:</strong>
+                                    </td>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <span style="color: #374151; font-size: 14px;">${interviewDate}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <strong style="color: #6b46c1; font-size: 14px;">Time:</strong>
+                                    </td>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <span style="color: #374151; font-size: 14px;">${interviewTime}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <strong style="color: #6b46c1; font-size: 14px;">Mode:</strong>
+                                    </td>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <span style="color: #374151; font-size: 14px;">${interviewMode}</span>
+                                    </td>
+                                </tr>
+                                ${additionalInfo ? `
+                                <tr>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <strong style="color: #6b46c1; font-size: 14px;">Additional Info:</strong>
+                                    </td>
+                                    <td style="padding: 8px 0; vertical-align: top;">
+                                        <span style="color: #374151; font-size: 14px;">${additionalInfo}</span>
+                                    </td>
+                                </tr>` : ''}
+                            </table>
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">
+                                Please confirm your availability by replying to this email or contacting us at <a href="mailto:hr@${companyName.toLowerCase().replace(/\s/g, '')}.com" style="color: #7c3aed; text-decoration: underline;" class="hover-pulse">hr@${companyName.toLowerCase().replace(/\s/g, '')}.com</a>. If the proposed time does not work, let us know, and we’ll find an alternative.
+                            </p>
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">
+                                Access your candidate portal to review details or upload documents at <a href="${candidateLoginLink || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/signin?email=${encodeURIComponent(data.candidateEmail)}`}" style="color: #7c3aed; text-decoration: underline;" class="hover-pulse">Candidate Portal</a>.
+                            </p>
+                            ${isNewCandidate ? `
+                            <div style="background: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 100%); border: 1px solid #c084fc; border-radius: 8px; padding: 16px; margin: 16px 0;" class="animate-fadeInUp animate-delay-1">
+                                <h4 style="margin: 0 0 12px 0; color: #7c3aed; font-size: 16px; font-weight: 600;">Account Created</h4>
+                                <p style="margin: 0 0 12px 0; color: #6b46c1; font-size: 14px; line-height: 1.5;">
+                                    We've created a candidate account for you. Please use the login link above to access the interview platform.
                                 </p>
-                                <div style="text-align: center;">
-                                    <a href="${data.candidateLoginLink || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/signin?email=${encodeURIComponent(data.candidateEmail)}`}" 
-                                       style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);"
-                                       target="_blank">
-                                        🏠 Access Candidate Portal
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            ${data.isNewCandidate ? `
-                            <!-- Account Created Section -->
-                            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 25px; margin: 25px 0;">
-                                <h4 style="margin: 0 0 15px 0; color: #92400e; font-size: 18px; font-weight: 600;">
-                                    🔑 Account Created
-                                </h4>
-                                <p style="margin: 0 0 15px 0; color: #b45309; font-size: 14px; line-height: 1.5;">
-                                    We've created a candidate account for you. Please use the login link below to access the interview platform.
-                                </p>
-                                <div style="background: #ffffff; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                                <div style="background: #ffffff; border-radius: 6px; padding: 12px; margin: 12px 0;">
                                     <p style="margin: 0; color: #374151; font-size: 14px;"><strong>Email:</strong> ${data.candidateEmail}</p>
                                 </div>
                             </div>
                             ` : ''}
-                            
-                            <!-- Instructions -->
-                            <p style="margin: 25px 0; color: #475569; font-size: 16px; line-height: 1.6;">
-                                ${data.isNewCandidate ? 'Please log in to your candidate portal first, then you can' : 'You can'} access your interview from your candidate portal or click the direct link below when it's time for your interview.
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;">
+                                ${isNewCandidate ? 'Please log in to your candidate portal first, then you can' : 'You can'} access your interview from your candidate portal or click the button below when it's time for your interview.
                             </p>
-                            
-                            <!-- CTA Button -->
-                            <div style="text-align: center; margin: 35px 0;">
-                                <a href="${interviewLink}" 
-                                   style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3); transition: all 0.3s ease;"
-                                   target="_blank">
-                                    🚀 Join Interview
-                                </a>
+                            <div style="text-align: center; margin: 24px 0;" class="animate-fadeInUp animate-delay-2">
+                                <a href="${interviewLink}" style="display: inline-block; background-color: #7c3aed; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);" class="hover-pulse cta-button">Join Interview</a>
                             </div>
-                            
-                            <!-- Additional Info -->
-                            <div style="background-color: #f8fafc; border-left: 4px solid #0d9488; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                                <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.5;">
-                                    <strong style="color: #1e293b;">💡 Tip:</strong> We recommend joining the interview 5-10 minutes early to test your audio and video setup. If you have any technical issues or questions, please don't hesitate to contact our support team.
+                            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f3f4f6 100%); border-left: 4px solid #7c3aed; padding: 16px; margin: 16px 0; border-radius: 0 6px 6px 0;" class="animate-fadeInUp animate-delay-2">
+                                <p style="margin: 0; color: #1f2937; font-size: 14px; font-weight: 600;">Interview Tip</p>
+                                <p style="margin: 8px 0 0 0; color: #4b5563; font-size: 14px; line-height: 1.5;">
+                                    Prepare a few questions about the role and ${companyName} to show your interest and engagement during the interview. We’re excited to learn more about you!
                                 </p>
                             </div>
-                            
-                            <!-- Closing -->
-                            <p style="margin: 30px 0 10px 0; color: #475569; font-size: 16px;">
-                                We look forward to meeting you and learning more about your experience!
-                            </p>
-                            
-                            <p style="margin: 10px 0 0 0; color: #475569; font-size: 16px;">
+                            <p style="margin: 24px 0 0 0; font-size: 16px; line-height: 1.6;" class="animate-fadeInUp animate-delay-2">
                                 Best regards,<br>
-                                <strong style="color: #0d9488;">${companyName} Team</strong>
+                                <strong style="color: #7c3aed;">${companyName} Team</strong><br>
+                                <a href="mailto:hr@${companyName.toLowerCase().replace(/\s/g, '')}.com" style="color: #7c3aed; text-decoration: underline;" class="hover-pulse">hr@${companyName.toLowerCase().replace(/\s/g, '')}.com</a>
                             </p>
                         </td>
                     </tr>
-                    
-                    <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
-                            <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">
-                                This email was sent by <strong>Gradii</strong> on behalf of <strong>${companyName}</strong>
+                        <td style="background: linear-gradient(to right, rgba(124, 58, 237, 0.1), #ffffff); padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;" class="animate-fadeInUp animate-delay-3">
+                            <p style="margin: 0; color: #6b7280; font-size: 12px;">
+                                ${companyName} | Your address | <a href="https://www.${companyName.toLowerCase().replace(/\s/g, '')}.com" style="color: #7c3aed; text-decoration: underline;" class="hover-pulse">www.${companyName.toLowerCase().replace(/\s/g, '')}.com</a>
                             </p>
-                            <p style="margin: 0 0 15px 0; color: #64748b; font-size: 12px;">
-                                If you have any questions about this interview, please contact the hiring team directly.
-                            </p>
-                            
-                            <!-- Social Links (Optional) -->
-                            <div style="margin: 20px 0;">
-                                <a href="#" style="display: inline-block; margin: 0 10px; color: #0d9488; text-decoration: none; font-size: 12px;">
-                                    Privacy Policy
-                                </a>
-                                <span style="color: #cbd5e1;">|</span>
-                                <a href="#" style="display: inline-block; margin: 0 10px; color: #0d9488; text-decoration: none; font-size: 12px;">
-                                    Terms of Service
-                                </a>
-                                <span style="color: #cbd5e1;">|</span>
-                                <a href="#" style="display: inline-block; margin: 0 10px; color: #0d9488; text-decoration: none; font-size: 12px;">
-                                    Contact Support
-                                </a>
-                            </div>
-                            
-                            <p style="margin: 15px 0 0 0; color: #94a3b8; font-size: 11px;">
+                            <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 12px;">
                                 © ${new Date().getFullYear()} Gradii. All rights reserved.
                             </p>
                         </td>
@@ -268,43 +233,6 @@ export const generateInterviewEmailTemplate = (data: EmailTemplateData): string 
             </td>
         </tr>
     </table>
-    
-    <!-- Mobile Responsive Styles -->
-    <style type="text/css">
-        @media only screen and (max-width: 600px) {
-            .email-container {
-                width: 100% !important;
-                max-width: 100% !important;
-            }
-            .email-content {
-                padding: 20px !important;
-            }
-            .email-header {
-                padding: 30px 20px !important;
-            }
-            .cta-button {
-                padding: 14px 24px !important;
-                font-size: 15px !important;
-            }
-            .details-table td {
-                display: block !important;
-                width: 100% !important;
-                padding: 4px 0 !important;
-            }
-        }
-        
-        @media only screen and (max-width: 480px) {
-            .email-header h1 {
-                font-size: 20px !important;
-            }
-            .email-header h2 {
-                font-size: 24px !important;
-            }
-            .main-title {
-                font-size: 18px !important;
-            }
-        }
-    </style>
 </body>
 </html>
   `;
@@ -323,44 +251,44 @@ export const generateInterviewEmailText = (data: EmailTemplateData): string => {
     interviewTime,
     interviewMode,
     interviewLink,
+    interviewType = "behavioral",
+    additionalInfo,
+    candidateLoginLink,
+    isNewCandidate
   } = data;
 
   return `
 INTERVIEW INVITATION - ${jobPosition.toUpperCase()}
 ${'='.repeat(50)}
 
-Hi ${candidateName},
+Dear ${candidateName},
 
-We're excited to invite you to your upcoming interview for the ${jobPosition} position at ${companyName}.
+Thank you for applying for the ${jobPosition} at ${companyName}. We were impressed with your application and are excited to invite you to a ${interviewType === 'coding' ? 'coding' : interviewType === 'combo' ? 'comprehensive' : 'behavioral'} interview.
 
 INTERVIEW DETAILS:
-📅 Date: ${interviewDate}
-🕒 Time: ${interviewTime}
-📍 Mode: ${interviewMode}
+Date: ${interviewDate}
+Time: ${interviewTime}
+Mode: ${interviewMode}
+${additionalInfo ? `Additional Info: ${additionalInfo}` : ''}
 
-${data.isNewCandidate ? `ACCOUNT CREATED:
-📧 Email: ${data.candidateEmail}
+${isNewCandidate ? `ACCOUNT CREATED:
+Email: ${data.candidateEmail}
 
-We've created a candidate account for you. Please log in to your candidate portal first: ${data.candidateLoginLink || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/signin`}
+We've created a candidate account for you. Please log in to your candidate portal first: ${candidateLoginLink || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/signin?email=${encodeURIComponent(data.candidateEmail)}`}
 
-` : ''}To join your interview, please visit:
-${interviewLink}
+` : ''}Please confirm your availability by replying to this email or contacting us at hr@${companyName.toLowerCase().replace(/\s/g, '')}.com. If the proposed time does not work, let us know, and we’ll find an alternative.
 
-IMPORTANT NOTES:
-• Please join 5-10 minutes early to test your setup
-• Ensure you have a stable internet connection
-• Have your resume and any questions ready
-• Contact support if you encounter any technical issues
+Access your candidate portal to review details or upload documents at: ${candidateLoginLink || `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/candidate/signin?email=${encodeURIComponent(data.candidateEmail)}`}
 
-We look forward to meeting you and learning more about your experience!
+Join the interview at: ${interviewLink}
+
+Interview Tip: Prepare a few questions about the role and ${companyName} to show your interest and engagement during the interview. We’re excited to learn more about you!
 
 Best regards,
 ${companyName} Team
+hr@${companyName.toLowerCase().replace(/\s/g, '')}.com
 
----
-This email was sent by Gradii on behalf of ${companyName}
-If you have questions about this interview, please contact the hiring team directly.
-
+${companyName} | Your address | www.${companyName.toLowerCase().replace(/\s/g, '')}.com
 © ${new Date().getFullYear()} Gradii. All rights reserved.
   `;
 };
@@ -395,7 +323,7 @@ export const generateInterviewReminderTemplate = (data: EmailTemplateData): stri
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
                     <tr>
                         <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">⏰ Interview Reminder</h1>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Interview Reminder</h1>
                         </td>
                     </tr>
                     <tr>
@@ -405,7 +333,7 @@ export const generateInterviewReminderTemplate = (data: EmailTemplateData): stri
                                 This is a friendly reminder about your upcoming interview for the <strong>${jobPosition}</strong> position at <strong>${companyName}</strong>.
                             </p>
                             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                                <p style="margin: 0; color: #92400e; font-weight: 600;">📅 ${interviewDate} at ${interviewTime}</p>
+                                <p style="margin: 0; color: #92400e; font-weight: 600;">${interviewDate} at ${interviewTime}</p>
                                 <p style="margin: 5px 0 0 0; color: #92400e;">Mode: ${interviewMode}</p>
                             </div>
                             <div style="text-align: center; margin: 25px 0;">
@@ -632,7 +560,7 @@ export const generateOtpEmailTemplate = (data: OtpEmailData): string => `
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">👑 Gradii Elite</div>
+            <div class="logo">Gradii Elite</div>
             <div class="tagline">Premium Recruitment Platform</div>
         </div>
         
@@ -646,11 +574,11 @@ export const generateOtpEmailTemplate = (data: OtpEmailData): string => `
             </div>
             
             <div class="expiry-notice">
-                ⏰ This code expires in 10 minutes for your security
+                This code expires in 10 minutes for your security
             </div>
             
             <div class="security-notice">
-                🔒 ${data.footer}
+                ${data.footer}
             </div>
         </div>
         
@@ -677,21 +605,21 @@ export const generateAuthEmail = (data: AuthEmailData): { subject: string; html:
 
   switch (data.purpose) {
     case 'signup':
-      subject = '👑 Welcome to Gradii Elite - Verify Your Royal Access';
+      subject = 'Welcome to Gradii Elite - Verify Your Royal Access';
       title = 'Welcome to Excellence';
       content = 'Your journey to elite recruitment begins here. Please verify your distinguished email address to unlock your premium access to Gradii.';
       footer = 'If you did not request this verification, please disregard this message. Your account security is our paramount concern.';
       break;
       
     case 'signin':
-      subject = '🔐 Your Gradii Access Code - Secure Entry';
+      subject = 'Your Gradii Access Code - Secure Entry';
       title = 'Secure Access Request';
       content = 'Welcome back to your exclusive Gradii experience. Use the verification code below to access your premium account.';
       footer = 'If you did not initiate this sign-in request, please secure your account immediately and contact our support team.';
       break;
       
     case 'candidate_access':
-      subject = '🎯 Your Interview Awaits - Gradii Access Code';
+      subject = 'Your Interview Awaits - Gradii Access Code';
       title = 'Interview Access Code';
       content = 'You have been invited for an interview. Use this verification code to access your candidate portal and begin your interview journey.';
       footer = 'This code is specifically for your interview access. Do not share it with anyone else.';
