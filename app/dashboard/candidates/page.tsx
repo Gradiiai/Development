@@ -587,7 +587,7 @@ export default function CandidatesPage() {
                                     <CircularProgress
                                       score={candidate.talentFitScore}
                                     />
-                                    <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-col bg-white rounded-md border-[1px] border-gray-200 shadow-sm z-20 p-3 sm:p-4 text-xs sm:text-sm text-gray-700 transition-all duration-75">
+                                    <div className="absolute right-0 bottom-full mb-2 hidden group-hover:flex flex-col bg-white rounded-md border-[1px] border-gray-200 shadow-sm z-20 p-3 sm:p-4 text-xs sm:text-sm text-gray-700 transition-all duration-75 w-80 sm:w-96">
                                       {candidate.skills &&
                                         typeof candidate.skills === "string" &&
                                         (() => {
