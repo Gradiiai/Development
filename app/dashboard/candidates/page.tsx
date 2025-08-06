@@ -61,6 +61,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { deleteCandidate } from "@/lib/database/queries/campaigns";
 
 interface Candidate {
   id: string;
@@ -108,6 +109,50 @@ export default function CandidatesPage() {
   const [campaignInterviewSetups, setCampaignInterviewSetups] = useState<{
     [key: string]: any[];
   }>({});
+  const [uploadProgress, setUploadProgress] = useState<{
+    current: number;
+    total: number;
+  }>({ current: 0, total: 0 });
+
+  // Add progress state for file upload progress bars
+  const [progress, setProgress] = useState<{ [fileName: string]: number }>({});
+
+  // Handle progress animation for all files
+  useEffect(() => {
+    if (uploadingResume && selectedFiles) {
+      const intervals: { [fileName: string]: NodeJS.Timeout } = {};
+      
+      // Initialize progress for all files and start animations
+      Array.from(selectedFiles).forEach(file => {
+        // Initialize progress if not set
+        setProgress(prev => ({
+          ...prev,
+          [file.name]: prev[file.name] ?? 0
+        }));
+        
+        // Start progress animation for this file
+        if ((progress[file.name] ?? 0) < 100) {
+          intervals[file.name] = setInterval(() => {
+            setProgress(prev => {
+              const currentProgress = prev[file.name] ?? 0;
+              if (currentProgress < 100) {
+                return {
+                  ...prev,
+                  [file.name]: Math.min(currentProgress + 5, 100)
+                };
+              }
+              return prev;
+            });
+          }, 1000); // Increment every 1 second (20 seconds total for 100% - 5% per second)
+        }
+      });
+
+      // Cleanup function to clear all intervals
+      return () => {
+        Object.values(intervals).forEach(interval => clearInterval(interval));
+      };
+    }
+  }, [uploadingResume, selectedFiles]);
 
   useEffect(() => {
     if (session?.user?.companyId) {
@@ -229,6 +274,7 @@ export default function CandidatesPage() {
     }
 
     setUploadingResume(true);
+    
     try {
       const formData = new FormData();
       Array.from(files).forEach((file) => {
@@ -244,17 +290,29 @@ export default function CandidatesPage() {
 
       const data = await response.json();
 
+      // Set all files to 100% complete
+      const completeProgress: { [fileName: string]: number } = {};
+      Array.from(files).forEach(file => {
+        completeProgress[file.name] = 100;
+      });
+      setProgress(completeProgress);
+
       if (response.ok && data.success) {
         toast.success(`Successfully uploaded ${data.processed} resumes`);
-        fetchCandidates();
-        setShowUpload(false);
+        
+        // Give a small delay to show 100% completion before closing
+        setTimeout(() => {
+          fetchCandidates();
+          setShowUpload(false);
+          setUploadingResume(false);
+        }, 500);
       } else {
         toast.error(data.error || "Failed to upload resumes");
+        setUploadingResume(false);
       }
     } catch (error) {
       console.error("Error uploading resumes:", error);
       toast.error("Failed to upload resumes");
-    } finally {
       setUploadingResume(false);
     }
   };
@@ -263,6 +321,14 @@ export default function CandidatesPage() {
     const files = event.target.files;
     if (files) {
       setSelectedFiles(files);
+      
+      // Initialize progress for each file
+      const initialProgress: { [fileName: string]: number } = {};
+      Array.from(files).forEach(file => {
+        initialProgress[file.name] = 0;
+      });
+      setProgress(initialProgress);
+      
       handleResumeUpload(files);
     }
   };
@@ -305,7 +371,9 @@ export default function CandidatesPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="ml-2 text-sm sm:text-base text-gray-600">Loading candidates...</p>
+          <p className="ml-2 text-sm sm:text-base text-gray-600">
+            Loading candidates...
+          </p>
         </div>
       </div>
     );
@@ -325,7 +393,9 @@ export default function CandidatesPage() {
               <div className="text-lg sm:text-xl font-medium mb-1">
                 {candidatesByStatus.all}
               </div>
-              <p className="text-xs sm:text-sm text-gray-600">Total Candidates</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                Total Candidates
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -430,7 +500,9 @@ export default function CandidatesPage() {
         {/* Candidates Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 overflow-x-auto w-full">
-            <TabsTrigger value="all" className="text-xs sm:text-sm">All ({candidatesByStatus.all})</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs sm:text-sm">
+              All ({candidatesByStatus.all})
+            </TabsTrigger>
             <TabsTrigger value="applied" className="text-xs sm:text-sm">
               Applied ({candidatesByStatus.applied})
             </TabsTrigger>
@@ -533,12 +605,14 @@ export default function CandidatesPage() {
                                             const getRandomColor = () =>
                                               bgColors[
                                                 Math.floor(
-                                                  Math.random() * bgColors.length
+                                                  Math.random() *
+                                                    bgColors.length
                                                 )
                                               ];
                                             return (
                                               <div className="space-y-3 sm:space-y-4">
-                                                {skills.technical?.length > 0 && (
+                                                {skills.technical?.length >
+                                                  0 && (
                                                   <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                                                     <span className="font-semibold text-gray-900 text-xs sm:text-sm">
                                                       Technical Skills:
@@ -562,7 +636,8 @@ export default function CandidatesPage() {
                                                     </ul>
                                                   </div>
                                                 )}
-                                                {skills.languages?.length > 0 && (
+                                                {skills.languages?.length >
+                                                  0 && (
                                                   <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                                                     <span className="font-semibold text-gray-900 text-xs sm:text-sm">
                                                       Languages:
@@ -675,21 +750,51 @@ export default function CandidatesPage() {
                                   <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="scheduled">Scheduled Interview</SelectItem>
-                                  <SelectItem value="approved">Approved</SelectItem>
-                                  <SelectItem value="rejected">Rejected</SelectItem>
-                                  <SelectItem value="applied">Applied</SelectItem>
-                                  <SelectItem value="screening">Screening</SelectItem>
-                                  <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                                  <SelectItem value="interview">Interviewed</SelectItem>
+                                  <SelectItem value="scheduled">
+                                    Scheduled Interview
+                                  </SelectItem>
+                                  <SelectItem value="approved">
+                                    Approved
+                                  </SelectItem>
+                                  <SelectItem value="rejected">
+                                    Rejected
+                                  </SelectItem>
+                                  <SelectItem value="applied">
+                                    Applied
+                                  </SelectItem>
+                                  <SelectItem value="screening">
+                                    Screening
+                                  </SelectItem>
+                                  <SelectItem value="shortlisted">
+                                    Shortlisted
+                                  </SelectItem>
+                                  <SelectItem value="interview">
+                                    Interviewed
+                                  </SelectItem>
                                   <SelectItem value="hired">Hired</SelectItem>
-                                  <SelectItem value="rejected">Rejected</SelectItem>
+                                  <SelectItem value="rejected">
+                                    Rejected
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="bg-red-100 hover:bg-red-200"
+                                onClick={() => {
+                                  if (window.confirm("Are you sure you want to delete this candidate?")) {
+                                    deleteCandidate(candidate.id, campaign?.id || "")
+                                      .then(() => {
+                                        toast.success("Candidate deleted successfully");
+                                        // Update the candidates list by removing the deleted candidate
+                                        setCandidates(candidates.filter(c => c.id !== candidate.id));
+                                      })
+                                      .catch(error => {
+                                        console.error("Failed to delete candidate:", error);
+                                        toast.error("Failed to delete candidate");
+                                      });
+                                  }
+                                }}
                               >
                                 <Trash className="h-4 w-4 text-red-600" />
                               </Button>
@@ -752,38 +857,172 @@ export default function CandidatesPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Upload Dialog */}
+{/* Upload Dialog */}
         <Dialog open={showUpload} onOpenChange={setShowUpload}>
-          <DialogContent className="w-[90vw] max-w-md">
-            <DialogHeader>
-              <DialogTitle>Upload Resumes</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 sm:space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center">
-                <FileText className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="resume-upload"
-                  disabled={uploadingResume}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    document.getElementById("resume-upload")?.click()
+          <DialogContent className="sm:max-w-lg bg-white rounded-xl shadow-md p-0 border border-gray-200">
+            <div className="p-6">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-xl font-medium text-gray-900">
+                  Upload Resume
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Campaign Selection Dropdown */}
+              <div className="mb-6">
+                <Select
+                  value={campaignFilter === "all" ? "direct" : campaignFilter}
+                  onValueChange={(value) =>
+                    setCampaignFilter(value === "direct" ? "all" : value)
                   }
-                  disabled={uploadingResume}
                 >
-                  {uploadingResume ? "Uploading..." : "Select Files"}
-                </Button>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Direct Upload" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="direct">Direct Upload</SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.campaignName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Supported formats: PDF, DOC, DOCX. Maximum file size: 10MB per
-                file.
-              </p>
+
+              {/* Campaign Card - Only show if a specific campaign is selected */}
+              {campaignFilter !== "all" &&
+                campaigns.find((c) => c.id === campaignFilter) && (
+                  <div className="mb-6">
+                    {(() => {
+                      const selectedCampaign = campaigns.find(
+                        (c) => c.id === campaignFilter
+                      );
+                      if (!selectedCampaign) return null;
+
+                      return (
+                        <div className="bg-gray-50 rounded-lg p-4 border">
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-semibold text-gray-900 text-lg">
+                              {selectedCampaign.jobTitle}
+                            </h3>
+                            <Badge
+                              variant="secondary"
+                              className="bg-green-100 text-green-800 border-0"
+                            >
+                              {selectedCampaign.status === "active"
+                                ? "Active"
+                                : selectedCampaign.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {selectedCampaign.campaignName}
+                          </p>
+
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="h-4 w-4" />
+                              <span>Engineering</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              <span>Mumbai</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              <span>Mid Level (3-5 Years)</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>Part Time</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                Created{" "}
+                                {new Date(
+                                  selectedCampaign.createdAt
+                                ).toLocaleDateString("en-US", {
+                                  month: "numeric",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+              {/* File Upload Area */}
+              <div className="mb-6">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 hover:border-gray-400 transition-colors">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Drag and drop resume files here, or click to browse
+                  </p>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="resume-upload"
+                    disabled={uploadingResume}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      document.getElementById("resume-upload")?.click()
+                    }
+                    disabled={uploadingResume}
+                    className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                  >
+                    {uploadingResume ? "Uploading..." : "Select Files"}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-3">
+                    Supported formats: PDF,DOC, DOCX. Maximum file size: 10MB
+                    per file.
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress Section */}
+              {uploadingResume && selectedFiles && (
+                <div className="mb-6">
+                  <div className="mb-2">
+                    <h4 className="font-medium text-gray-900 mb-2">Progress</h4>
+                    {Array.from(selectedFiles).map((file, index) => {
+                      const currentProgress = progress[file.name] || 0;
+                      
+                      return (
+                        <div key={index} className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-700">
+                              {file.name}
+                            </span>
+                            <span className="text-sm font-medium text-purple-600">
+                              {Math.round(currentProgress)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.round(currentProgress)}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
