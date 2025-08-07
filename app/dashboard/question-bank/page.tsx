@@ -1213,9 +1213,10 @@ export default function QuestionCollectionPage() {
                     </CardTitle>
                   </div>
                   <div
-                    onClick={() => setIsQuestionDialogOpen(true)}
                     className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 cursor-pointer">
+                    <div 
+                    onClick={() => setIsQuestionDialogOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 cursor-pointer">
 
                       <Plus className="h-5 w-5 mr-2" />
 
