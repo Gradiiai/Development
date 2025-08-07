@@ -43,13 +43,6 @@ const navigationItems = [
     description: "Campaign completion and next steps",
     step: 4
   },
-  {
-    name: "Candidates",
-    href: "/dashboard/job-campaign/candidates",
-    icon: Users,
-    description: "Manage and review candidates",
-    step: null // Available after campaign creation
-  }
 ];
 
 export function JobCampaignNavigation() {
@@ -91,9 +84,9 @@ export function JobCampaignNavigation() {
   }
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center space-x-1 overflow-x-auto py-4">
+    <div className="bg-white border-b border-gray-200 rounded-lg shadow-sm w-full">
+      <div className="w-full px-4">
+        <div className="flex items-center space-x-1 overflow-x-auto py-3">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -108,13 +101,13 @@ export function JobCampaignNavigation() {
                     className={cn(
                       "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-blue-100 text-blue-700 border border-blue-200"
+                        ? "bg-purple-100 text-purple-700 border border-purple-200"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
                     <Icon className={cn(
                       "w-4 h-4",
-                      isActive ? "text-blue-600" : "text-gray-400",
+                      isActive ? "text-purple-600" : "text-gray-400",
                       isCompleted && showCampaignUI && "text-green-600"
                     )} />
                     <span>{item.name}</span>

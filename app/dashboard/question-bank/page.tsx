@@ -125,7 +125,6 @@ interface Question {
   validatedAt?: string;
   revisionNumber: number;
   collection_id: string;
-
 }
 
 // Define the QuestionCollection type
@@ -148,7 +147,6 @@ interface QuestionCollection {
     type: string;
     count: number;
   }[];
-
 }
 
 // Question Bank Template type
@@ -163,9 +161,7 @@ interface QuestionCollectionTemplate {
   difficultyLevels: string[];
   estimatedQuestions: number;
   questionTypes: string[];
-
 }
-
 
 export default function QuestionCollectionPage() {
   const { data: session } = useSession();
@@ -264,8 +260,7 @@ export default function QuestionCollectionPage() {
     difficulty: "medium",
     topic: "",
     category: "",
-    languages: ['javascript'],
-
+    languages: ["javascript"],
   });
 
   useEffect(() => {
@@ -489,7 +484,7 @@ export default function QuestionCollectionPage() {
           // Conflict - show detailed error information
           toast.error(
             data.details?.message ||
-            "Cannot delete question bank - it is in use"
+              "Cannot delete question bank - it is in use"
           );
         } else {
           toast.error(data.error || "Failed to delete question bank");
@@ -635,7 +630,8 @@ export default function QuestionCollectionPage() {
       toast.error("Failed to create question bank from template");
     }
   };
-  const preferredLanguage = aiFormData.languages?.[0]?.toLowerCase() || 'javascript';
+  const preferredLanguage =
+    aiFormData.languages?.[0]?.toLowerCase() || "javascript";
 
   const handleGenerateQuestions = async () => {
     if (!selectedCollection) return;
@@ -713,10 +709,13 @@ export default function QuestionCollectionPage() {
               ...aiQuestions.coding.map((q: any) => ({
                 questionType: "coding",
                 question: q.title + "\n\n" + q.description,
-                expectedAnswer: q.solutions?.[preferredLanguage] || Object.values(q.solutions || {})[0] || q.explanation,
+                expectedAnswer:
+                  q.solutions?.[preferredLanguage] ||
+                  Object.values(q.solutions || {})[0] ||
+                  q.explanation,
                 category: aiFormData.category || "Technical",
                 difficultyLevel: q.difficulty || "medium",
-                collectionId: selectedCollection.id
+                collectionId: selectedCollection.id,
               }))
             );
           }
@@ -752,9 +751,12 @@ export default function QuestionCollectionPage() {
               aiFormData.type === "coding"
                 ? q.title + "\n\n" + q.description
                 : q.question || q.title,
-            expectedAnswer: aiFormData.type === 'coding'
-              ? q.solution?.[preferredLanguage] || Object.values(q.solution || {})[0] || q.explanation
-              : q.explanation || q.purpose || q.correctAnswer,
+            expectedAnswer:
+              aiFormData.type === "coding"
+                ? q.solution?.[preferredLanguage] ||
+                  Object.values(q.solution || {})[0] ||
+                  q.explanation
+                : q.explanation || q.purpose || q.correctAnswer,
             category: aiFormData.category || "General",
             difficultyLevel: q.difficulty || "medium",
             collectionId: selectedCollection.id,
@@ -1074,21 +1076,27 @@ export default function QuestionCollectionPage() {
                           <div className="grid grid-cols-3 gap-3">
                             <div className="p-4 rounded-md border border-gray-200 text-center">
                               <p>
-                                {bank.questionTypes?.find((qt) => qt.type === "mcq")?.count || 0}
+                                {bank.questionTypes?.find(
+                                  (qt) => qt.type === "mcq"
+                                )?.count || 0}
                               </p>
                               <p className="text-sm">MCQs</p>
                             </div>
 
                             <div className="p-4 rounded-md border border-gray-200 text-center">
                               <p>
-                                {bank.questionTypes?.find((qt) => qt.type === "behavioral")?.count || 0}
+                                {bank.questionTypes?.find(
+                                  (qt) => qt.type === "behavioral"
+                                )?.count || 0}
                               </p>
                               <p className="text-sm">Behavioral</p>
                             </div>
 
                             <div className="p-4 rounded-md border border-gray-200 text-center">
                               <p>
-                                {bank.questionTypes?.find((qt) => qt.type === "coding")?.count || 0}
+                                {bank.questionTypes?.find(
+                                  (qt) => qt.type === "coding"
+                                )?.count || 0}
                               </p>
                               <p className="text-sm">Coding</p>
                             </div>
@@ -1096,7 +1104,6 @@ export default function QuestionCollectionPage() {
                         </div>
                       </div>
                     </CardContent>
-
                   </Card>
                 ))}
               </div>
@@ -1227,17 +1234,19 @@ export default function QuestionCollectionPage() {
                       Questions
                     </CardTitle>
                   </div>
-                  <div
-                    className="flex items-center gap-3">
-                    <div 
-                    onClick={() => setIsQuestionDialogOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 cursor-pointer">
-
+                  <div className="flex items-center gap-3">
+                    <div
+                      onClick={() => setIsQuestionDialogOpen(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 cursor-pointer"
+                    >
                       <Plus className="h-5 w-5 mr-2" />
 
                       <p>Add Question</p>
                     </div>
-                    <div onClick={() => setIsGenerating(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white border border-gray-200">
+                    <div
+                      onClick={() => setIsGenerating(true)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white border border-gray-200"
+                    >
                       <Sparkles className="h-5 w-5 mr-2" />
                       <p>AI Generate</p>
                     </div>
@@ -2028,21 +2037,24 @@ export default function QuestionCollectionPage() {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{template.category}</Badge>
                         {template.subCategory && (
-                          <Badge variant="secondary">{template.subCategory}</Badge>
+                          <Badge variant="secondary">
+                            {template.subCategory}
+                          </Badge>
                         )}
                       </div>
                       <div className="text-sm text-gray-600">
                         <div>
-                          Question Types: {(template.questionTypes || []).join(" & ")}
+                          Question Types:{" "}
+                          {(template.questionTypes || []).join(" & ")}
                         </div>
                         <div>
-                          Target Roles: {(template.targetRoles || []).join(" & ")}
+                          Target Roles:{" "}
+                          {(template.targetRoles || []).join(" & ")}
                         </div>
                         <div>Est. Questions: {template.estimatedQuestions}</div>
                       </div>
                     </div>
                   </CardContent>
-
                 </Card>
               ))}
             </div>
