@@ -124,6 +124,8 @@ interface Question {
   validatedBy?: string;
   validatedAt?: string;
   revisionNumber: number;
+  collection_id: string;
+
 }
 
 // Define the QuestionCollection type
@@ -142,6 +144,11 @@ interface QuestionCollection {
   lastUsedAt?: string;
   createdAt: string;
   updatedAt: string;
+questionTypes?: {
+  type: string;
+  count: number;
+}[];
+
 }
 
 // Question Bank Template type
@@ -1038,61 +1045,50 @@ export default function QuestionCollectionPage() {
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start gap-5">
-                          <div className="flex gap-5">
-                            <div className="flex items-center space-x-2 text-sm text-gray-600">
-                              <FileText className="h-4 w-4" />
-                              <span className="font-medium">
-                                {bank.questionCount || 0} questions
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2 text-sm text-gray-500">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                {new Date(bank.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
+              <CardContent className="pt-0">
+  <div className="space-y-4">
+    <div className="flex justify-between items-start gap-5">
+      <div className="flex gap-5">
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <FileText className="h-4 w-4" />
+          <span className="font-medium">
+            {bank.questionCount || 0} questions
+          </span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <Calendar className="h-4 w-4" />
+          <span>
+            {new Date(bank.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
 
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="p-4 rounded-md border border-gray-200 text-center">
-                              <p>
-                                {
-                                  questions.filter(
-                                    (q) => q.questionType === "mcq"
-                                  ).length
-                                }
-                              </p>
-                              <p className="text-sm">MCQs</p>
-                            </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-md border border-gray-200 text-center">
+          <p>
+{bank.questionTypes?.find((qt) => qt.type === "mcq")?.count || 0}
+          </p>
+          <p className="text-sm">MCQs</p>
+        </div>
 
-                            <div className="p-4 rounded-md border border-gray-200 text-center">
-                              <p>
-                                {
-                                  questions.filter(
-                                    (q) => q.questionType === "behavioral"
-                                  ).length
-                                }
-                              </p>
-                              <p className="text-sm">Behavioral</p>
-                            </div>
+        <div className="p-4 rounded-md border border-gray-200 text-center">
+          <p>
+{bank.questionTypes?.find((qt) => qt.type === "behavioral")?.count || 0}
+          </p>
+          <p className="text-sm">Behavioral</p>
+        </div>
 
-                            <div className="p-4 rounded-md border border-gray-200 text-center">
-                              <p>
-                                {
-                                  questions.filter(
-                                    (q) => q.questionType === "coding"
-                                  ).length
-                                }
-                              </p>
-                              <p className="text-sm">Coding</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
+        <div className="p-4 rounded-md border border-gray-200 text-center">
+          <p>
+{bank.questionTypes?.find((qt) => qt.type === "coding")?.count || 0}
+          </p>
+          <p className="text-sm">Coding</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</CardContent>
+
                   </Card>
                 ))}
               </div>
