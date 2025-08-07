@@ -179,6 +179,7 @@ export default function QuestionCollectionPage() {
   const [loading, setLoading] = useState(true);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
+
   // View state
   const [currentView, setCurrentView] = useState<"collections" | "questions">(
     "collections"
@@ -241,7 +242,14 @@ export default function QuestionCollectionPage() {
   const [questionFilters, setQuestionFilters] = useState({
     questionType: "",
     search: "",
+    difficulty: "all",
   });
+  const filteredQuestions =
+  questionFilters.difficulty === "all"
+    ? questions
+    : questions.filter(
+        (q) => q.difficultyLevel.toLowerCase() === questionFilters.difficulty
+      );
 
   // AI Generation state
   const [aiFormData, setAiFormData] = useState({
@@ -1188,17 +1196,24 @@ export default function QuestionCollectionPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select>
-                    <SelectTrigger className="border-2 border-gray-200 focus:border-blue-400">
-                      <SelectValue placeholder="Select Difficulty" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Questions</SelectItem>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  
+                <Select
+  value={questionFilters.difficulty}
+  onValueChange={(value) =>
+    setQuestionFilters((prev) => ({ ...prev, difficulty: value }))
+  }
+>
+  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-400">
+    <SelectValue placeholder="Select Difficulty" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Questions</SelectItem>
+    <SelectItem value="easy"> Easy</SelectItem>
+    <SelectItem value="medium">Medium</SelectItem>
+    <SelectItem value="hard"> Hard</SelectItem>
+  </SelectContent>
+</Select>
+
                 </div>
               </div>
             </div>
@@ -1296,7 +1311,7 @@ export default function QuestionCollectionPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {questions.map((question, index) => (
+                            {filteredQuestions.map((question, index) => (
                               <TableRow
                                 key={question.id}
                                 className="hover:bg-blue-50/50 transition-colors group"
@@ -1408,12 +1423,12 @@ export default function QuestionCollectionPage() {
                     </TabsContent>
                     <TabsContent value="cards" className="mt-0">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {questions.map((question, index) => (
-                          <Card
-                            key={question.id}
-                            className="group hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:shadow-blue-500/25"
-                            style={{ animationDelay: `${index * 100}ms` }}
-                          >
+                      {filteredQuestions.map((question, index) => (
+  <Card
+    key={question.id}
+    className="group hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:shadow-blue-500/25"
+    style={{ animationDelay: `${index * 100}ms` }}
+  >
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center space-x-2">
