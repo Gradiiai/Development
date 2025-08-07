@@ -140,24 +140,6 @@ export function JobCampaignNavigation() {
             );
           })}
         </div>
-        
-        {/* Campaign Info */}
-        {showCampaignUI && (
-          <div className="pb-4">
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Settings className="w-4 h-4" />
-                <span>Campaign ID: {campaignId}</span>
-              </div>
-              {state.jobDetails.campaignName && (
-                <div className="flex items-center space-x-1">
-                  <Briefcase className="w-4 h-4" />
-                  <span>{state.jobDetails.campaignName}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

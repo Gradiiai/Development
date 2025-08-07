@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import { useRedisStorage } from '@/shared/hooks/useRedisStorage';
 import {
   JobDetailsForm,
@@ -282,66 +282,66 @@ export function JobCampaignProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [state, setRedisState]);
 
-  // Action creators
-  const setCurrentStep = (step: number) => {
+  // Action creators (memoized to prevent unnecessary re-renders)
+  const setCurrentStep = useCallback((step: number) => {
     dispatch({ type: 'SET_CURRENT_STEP', payload: step });
-  };
+  }, []);
 
-  const setCampaignId = (id: string) => {
+  const setCampaignId = useCallback((id: string) => {
     dispatch({ type: 'SET_CAMPAIGN_ID', payload: id });
-  };
+  }, []);
 
-  const updateJobDetails = (details: Partial<JobDetailsForm>) => {
+  const updateJobDetails = useCallback((details: Partial<JobDetailsForm>) => {
     dispatch({ type: 'UPDATE_JOB_DETAILS', payload: details });
-  };
+  }, []);
 
-  const resetJobDetails = () => {
+  const resetJobDetails = useCallback(() => {
     dispatch({ type: 'RESET_JOB_DETAILS' });
-  };
+  }, []);
 
   // Job Portal Sync functions removed - functionality deprecated
 
-  const updateScoringParameters = (params: Partial<ScoringParameters>) => {
+  const updateScoringParameters = useCallback((params: Partial<ScoringParameters>) => {
     dispatch({ type: 'UPDATE_SCORING_PARAMETERS', payload: params });
-  };
+  }, []);
 
-  const updateRound = (roundId: string, field: keyof InterviewRound, value: any) => {
+  const updateRound = useCallback((roundId: string, field: keyof InterviewRound, value: any) => {
     dispatch({ type: 'UPDATE_ROUND', payload: { roundId, field, value } });
-  };
+  }, []);
 
-  const addRound = (type?: 'behavioral' | 'mcq' | 'coding' | 'combo') => {
+  const addRound = useCallback((type?: 'behavioral' | 'mcq' | 'coding' | 'combo') => {
     dispatch({ type: 'ADD_ROUND', payload: { type } });
-  };
+  }, []);
 
-  const removeRound = (roundId: string) => {
+  const removeRound = useCallback((roundId: string) => {
     dispatch({ type: 'REMOVE_ROUND', payload: roundId });
-  };
+  }, []);
 
-  const setNumberOfRounds = (count: number) => {
+  const setNumberOfRounds = useCallback((count: number) => {
     dispatch({ type: 'SET_NUMBER_OF_ROUNDS', payload: count });
-  };
+  }, []);
 
-  const toggleRoundEnabled = (roundId: string) => {
+  const toggleRoundEnabled = useCallback((roundId: string) => {
     dispatch({ type: 'TOGGLE_ROUND_ENABLED', payload: roundId });
-  };
+  }, []);
 
-  const updateInterviewSetup = (setup: InterviewSetup) => {
+  const updateInterviewSetup = useCallback((setup: InterviewSetup) => {
     dispatch({ type: 'UPDATE_INTERVIEW_SETUP', payload: setup });
-  };
+  }, []);
 
-  const setLoading = (loading: boolean) => {
+  const setLoading = useCallback((loading: boolean) => {
     dispatch({ type: 'SET_LOADING', payload: loading });
-  };
+  }, []);
 
-  const setError = (error: string | null) => {
+  const setError = useCallback((error: string | null) => {
     dispatch({ type: 'SET_ERROR', payload: error });
-  };
+  }, []);
 
-  const resetCampaign = () => {
+  const resetCampaign = useCallback(() => {
     dispatch({ type: 'RESET_CAMPAIGN' });
-  };
+  }, []);
 
-  const saveToStorage = () => {
+  const saveToStorage = useCallback(() => {
     // This is now handled by the Redis storage hook
     const dataToStore: Partial<JobCampaignState> = {
       campaignId: state.campaignId,
@@ -350,12 +350,12 @@ export function JobCampaignProvider({ children }: { children: ReactNode }) {
       currentStep: state.currentStep,
     };
     setRedisState(dataToStore);
-  };
+  }, [state, setRedisState]);
 
-  const loadFromStorage = () => {
+  const loadFromStorage = useCallback(() => {
     // This is now handled automatically by the Redis storage hook
     // Data is loaded when the component mounts
-  };
+  }, []);
 
   // Computed properties
   const isFormValid = (
