@@ -640,11 +640,110 @@ export default function JobCampaignCandidatesPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading candidates...</p>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="h-8 w-64 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
+            <div className="h-4 w-80 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse"></div>
+            <div className="h-10 w-24 bg-gray-200 rounded-md animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Stats Cards skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((index) => (
+            <Card key={index}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters skeleton */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="h-10 w-full bg-gray-200 rounded-md animate-pulse"></div>
+              </div>
+              <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse"></div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs skeleton */}
+        <div className="space-y-4">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+              <div key={index} className="flex-1 h-10 bg-gray-200 rounded-md animate-pulse"></div>
+            ))}
+          </div>
+
+          {/* Candidate cards skeleton */}
+          <div className="grid gap-4">
+            {[1, 2, 3, 4, 5].map((index) => (
+              <Card key={index}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-12 w-12 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="space-y-2 flex-1">
+                        <div className="h-5 w-48 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="flex space-x-4">
+                          <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 w-28 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="space-y-1 text-right">
+                        <div className="h-4 w-12 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                      <div className="flex space-x-1">
+                        {[1, 2, 3, 4, 5].map((btnIndex) => (
+                          <div key={btnIndex} className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Skills tags skeleton */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[1, 2, 3, 4].map((skillIndex) => (
+                      <div key={skillIndex} className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                    ))}
+                  </div>
+                  
+                  {/* Interview rounds skeleton */}
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-3"></div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3].map((roundIndex) => (
+                        <div key={roundIndex} className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
